@@ -1,16 +1,10 @@
-name: CI / Release
+name: Release
 
 on:
   push:
-    branches: [main]
     tags: ['v*']
-  pull_request:
-    branches: [main]
 
 jobs:
-  # ────────────────────────────────────────────────────────────────────────────
-  # 빌드 & 테스트 (ARM64 네이티브 러너)
-  # ────────────────────────────────────────────────────────────────────────────
   test:
     name: Build & Test (ARM64)
     runs-on: ubuntu-24.04-arm
@@ -29,7 +23,7 @@ jobs:
             ninja-build \
             can-utils
 
-      - name: Configure (with tests)
+      - name: Configure
         run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
@@ -41,17 +35,12 @@ jobs:
       - name: Run tests
         run: ctest --test-dir build --output-on-failure --timeout 30
 
-  # ────────────────────────────────────────────────────────────────────────────
-  # 릴리스 빌드 & GitHub Release 생성 (태그 푸시 시)
-  # ────────────────────────────────────────────────────────────────────────────
   release:
     name: Release (ARM64)
     needs: test
     runs-on: ubuntu-24.04-arm
-    if: startsWith(github.ref, 'refs/tags/v')
-
     permissions:
-      contents: write   # GitHub Release 생성 권한
+      contents: write
 
     steps:
       - name: Checkout
@@ -70,20 +59,15 @@ jobs:
         id: version
         run: echo "version=$(cat VERSION | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
 
-      - name: Configure (release, no tests)
+      - name: Build release binary
         run: |
-          cmake -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_TESTS=OFF
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
 
-      - name: Build
-        run: cmake --build build --parallel
-
-      - name: Prepare release artifact
+      - name: Prepare artifact
         run: |
           cp build/apps/cluster/cluster cluster-arm64
           chmod +x cluster-arm64
-          # 빌드 정보 기록
           echo "version=${{ steps.version.outputs.version }}" > build-info.txt
           echo "commit=${{ github.sha }}"                    >> build-info.txt
           echo "built=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"     >> build-info.txt
@@ -97,7 +81,6 @@ jobs:
 
             ### 설치 방법 (Raspberry Pi)
             ```bash
-            # 최신 바이너리 다운로드
             curl -L https://github.com/${{ github.repository }}/releases/latest/download/cluster-arm64 \
               -o /opt/cluster/cluster
             chmod +x /opt/cluster/cluster
@@ -106,9 +89,11 @@ jobs:
 
             ### 최초 설치
             ```bash
-            git clone https://github.com/${{ github.repository }}.git
-            cd CarEntertainmentClusterUnit
-            sudo bash scripts/install.sh cluster-arm64
+            curl -L https://github.com/${{ github.repository }}/releases/latest/download/install.sh \
+              -o install.sh
+            curl -L https://github.com/${{ github.repository }}/releases/latest/download/cluster-arm64 \
+              -o cluster-arm64
+            sudo bash install.sh ./cluster-arm64
             sudo reboot
             ```
           files: |
