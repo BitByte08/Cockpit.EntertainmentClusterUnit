@@ -28,3 +28,7 @@ add_test(
     NAME ClusterModelTest
     COMMAND cluster_model_test
 )
+
+set_tests_properties(ClusterModelTest PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
