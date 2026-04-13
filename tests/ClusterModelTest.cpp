@@ -93,7 +93,9 @@ private slots:
         QCOMPARE(spy.takeFirst().at(0).toInt(), 3000);
     }
 
-    void testRpmZero() {
+    void testRpmDropToZero() {
+        // 초기값이 0이므로 먼저 non-zero로 올린 뒤 0으로 내림
+        iface_->inject(0x200, 2, 0x00, 0x01);
         QSignalSpy spy(model_, &ClusterModel::rpmChanged);
         iface_->inject(0x200, 2, 0x00, 0x00);
         QCOMPARE(spy.count(), 1);
