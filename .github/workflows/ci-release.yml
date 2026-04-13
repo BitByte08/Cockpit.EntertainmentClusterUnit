@@ -25,7 +25,6 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             qt6-base-dev \
             qt6-tools-dev \
-            libqt6network6-dev \
             cmake \
             ninja-build \
             can-utils
@@ -64,7 +63,6 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             qt6-base-dev \
             qt6-tools-dev \
-            libqt6network6-dev \
             cmake \
             ninja-build
 
