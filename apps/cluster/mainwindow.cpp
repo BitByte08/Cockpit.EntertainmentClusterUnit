@@ -11,6 +11,7 @@
 
 #include <QVBoxLayout>
 #include <QProcess>
+#include <QTimer>
 #include <memory>
 
 static constexpr const char *kGithubRepo = "BitByte08/Cockpit.EntertainmentClusterUnit";
