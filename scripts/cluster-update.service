@@ -1,0 +1,15 @@
+[Unit]
+Description=Car Cluster OTA Update Check
+After=network-online.target
+Wants=network-online.target
+Before=cluster-kiosk.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/cluster/update.sh
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
