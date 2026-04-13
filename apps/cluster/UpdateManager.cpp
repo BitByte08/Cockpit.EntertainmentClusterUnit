@@ -81,7 +81,7 @@ void UpdateManager::onCheckReplyFinished(QNetworkReply *reply) {
 void UpdateManager::downloadAndApply() {
     if (download_url_.isEmpty()) return;
 
-    QNetworkRequest req(QUrl(download_url_));
+    QNetworkRequest req{QUrl(download_url_)};
     req.setRawHeader("User-Agent", "cluster-app");
     QNetworkReply *reply = net_->get(req);
 
