@@ -4,14 +4,16 @@ add_executable(cluster
     main.cpp
     mainwindow.cpp
     mainwindow.hpp
+    mainwindow.ui
     models/ClusterModel.cpp
     models/ClusterModel.hpp
     widgets/GaugeWidget.cpp
     widgets/GaugeWidget.hpp
-    mainwindow.ui
+    UpdateManager.cpp
+    UpdateManager.hpp
 )
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
 qt_standard_project_setup()
 
 target_include_directories(cluster
@@ -22,5 +24,6 @@ target_include_directories(cluster
 target_link_libraries(cluster
     PRIVATE
         Qt6::Widgets
+        Qt6::Network
         can_interface
 )
