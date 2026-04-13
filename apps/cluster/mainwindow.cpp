@@ -13,7 +13,7 @@
 #include <QProcess>
 #include <memory>
 
-static constexpr const char *kGithubRepo = "bitbyte08/CarEntertainmentClusterUnit";
+static constexpr const char *kGithubRepo = "BitByte08/Cockpit.EntertainmentClusterUnit";
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent),

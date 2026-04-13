@@ -6,7 +6,7 @@ set -euo pipefail
 INSTALL_DIR="/opt/cluster"
 BINARY_NAME="cluster"
 ASSET_NAME="cluster-arm64"
-GITHUB_REPO="bitbyte08/CarEntertainmentClusterUnit"
+GITHUB_REPO="BitByte08/Cockpit.EntertainmentClusterUnit"
 API_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
 VERSION_FILE="${INSTALL_DIR}/VERSION"
 TMP_BINARY="/tmp/cluster-update"

@@ -85,10 +85,10 @@ CarEntertainmentClusterUnit/
 
 ```bash
 # 릴리스에서 설치 스크립트 + 바이너리 직접 다운로드
-curl -L https://github.com/bitbyte08/CarEntertainmentClusterUnit/releases/latest/download/install.sh \
+curl -L https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit/releases/latest/download/install.sh \
   -o install.sh
 
-curl -L https://github.com/bitbyte08/CarEntertainmentClusterUnit/releases/latest/download/cluster-arm64 \
+curl -L https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit/releases/latest/download/cluster-arm64 \
   -o cluster-arm64
 
 sudo bash install.sh ./cluster-arm64
@@ -98,7 +98,7 @@ sudo reboot
 또는 저장소 클론 후 설치:
 
 ```bash
-git clone https://github.com/bitbyte08/CarEntertainmentClusterUnit.git
+git clone https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit.git
 cd CarEntertainmentClusterUnit
 sudo bash scripts/install.sh
 sudo reboot
@@ -107,7 +107,7 @@ sudo reboot
 ### 2. 바이너리만 수동 업데이트
 
 ```bash
-curl -L https://github.com/bitbyte08/CarEntertainmentClusterUnit/releases/latest/download/cluster-arm64 \
+curl -L https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit/releases/latest/download/cluster-arm64 \
   -o /tmp/cluster-arm64
 
 sudo install -m 755 /tmp/cluster-arm64 /opt/cluster/cluster
