@@ -61,52 +61,46 @@ void MainWindow::setupGauges() {
     ui->rpmGauge->setMinValue(0);
     ui->rpmGauge->setMaxValue(8000);
     ui->rpmGauge->setMajorTicks(16);
-    ui->rpmGauge->setUnit("RPM");
-    ui->rpmGauge->setLabel("ENGINE");
+    ui->rpmGauge->setRedZoneStart(6500);
+    ui->rpmGauge->setUnit("x1000");
+    ui->rpmGauge->setLabel("RPM");
 }
 
 void MainWindow::setupInfoPanel() {
     ui->infoPanel->setStyleSheet(
         "QFrame#infoPanel {"
-        "  background-color: #1C1008;"
-        "  border: 2px solid #5C3317;"
-        "  border-radius: 12px;"
+        "  background-color: #0D0D0D;"
+        "  border: 1px solid #333333;"
+        "  border-radius: 8px;"
         "}"
     );
 
     ui->speedSectionLabel->setStyleSheet(
-        "color: #8B6035; font-size: 18px; font-weight: bold;"
-        "letter-spacing: 4px; background: transparent;"
+        "color: #00C8FF; font-size: 14px; font-weight: bold; letter-spacing: 4px; background: transparent;"
     );
     ui->speedValueLabel->setStyleSheet(
-        "color: #F0DEB0; font-size: 96px; font-weight: bold;"
-        "background: transparent;"
+        "color: #FFFFFF; font-size: 72px; font-weight: bold; background: transparent;"
     );
     ui->speedUnitLabel->setStyleSheet(
-        "color: #8B6035; font-size: 20px; letter-spacing: 2px;"
-        "background: transparent;"
+        "color: #888888; font-size: 16px; letter-spacing: 2px; background: transparent;"
     );
 
-    QString dividerStyle = "color: #3D2210; background-color: #3D2210;";
+    QString dividerStyle = "color: #222222; background-color: #222222;";
     ui->divider1->setStyleSheet(dividerStyle);
     ui->divider2->setStyleSheet(dividerStyle);
 
     ui->fuelSectionLabel->setStyleSheet(
-        "color: #7A6048; font-size: 16px; font-weight: bold;"
-        "letter-spacing: 3px; background: transparent;"
+        "color: #FFB800; font-size: 12px; font-weight: bold; letter-spacing: 2px; background: transparent;"
     );
     ui->fuelValueLabel->setStyleSheet(
-        "color: #C8A96E; font-size: 28px; font-weight: bold;"
-        "background: transparent;"
+        "color: #FFFFFF; font-size: 20px; font-weight: bold; background: transparent;"
     );
 
     ui->tempSectionLabel->setStyleSheet(
-        "color: #7A6048; font-size: 16px; font-weight: bold;"
-        "letter-spacing: 3px; background: transparent;"
+        "color: #FF4444; font-size: 12px; font-weight: bold; letter-spacing: 2px; background: transparent;"
     );
     ui->tempValueLabel->setStyleSheet(
-        "color: #C8A96E; font-size: 28px; font-weight: bold;"
-        "background: transparent;"
+        "color: #FFFFFF; font-size: 20px; font-weight: bold; background: transparent;"
     );
 }
 
@@ -115,9 +109,9 @@ void MainWindow::setupUpdateBanner() {
     update_banner_ = new QLabel(this);
     update_banner_->setAlignment(Qt::AlignCenter);
     update_banner_->setStyleSheet(
-        "background-color: #2A4A1A; color: #80D040;"
-        "font-size: 13px; padding: 4px 12px;"
-        "border-radius: 6px;"
+        "background-color: #1A3A10; color: #00FF66;"
+        "font-size: 12px; padding: 4px 12px;"
+        "border-radius: 4px; border: 1px solid #00FF66;"
     );
     update_banner_->hide();
 
@@ -145,30 +139,30 @@ void MainWindow::onSpeedChanged(int speed) {
     ui->speedValueLabel->setText(QString::number(speed));
 
     QString color;
-    if (speed < 80)        color = "#F0DEB0";
-    else if (speed < 130)  color = "#D4A030";
-    else                   color = "#C03020";
+    if (speed < 80)        color = "#FFFFFF";
+    else if (speed < 130)  color = "#FFB800";
+    else                   color = "#FF4444";
 
     ui->speedValueLabel->setStyleSheet(
-        QString("color: %1; font-size: 96px; font-weight: bold; background: transparent;")
+        QString("color: %1; font-size: 72px; font-weight: bold; background: transparent;")
             .arg(color)
     );
 }
 
 void MainWindow::onFuelChanged(int fuel) {
-    QString color = (fuel <= 15) ? "#C03020" : "#C8A96E";
+    QString color = (fuel <= 15) ? "#FF4444" : "#FFFFFF";
     ui->fuelValueLabel->setText(QString::number(fuel) + "%");
     ui->fuelValueLabel->setStyleSheet(
-        QString("color: %1; font-size: 28px; font-weight: bold; background: transparent;")
+        QString("color: %1; font-size: 20px; font-weight: bold; background: transparent;")
             .arg(color)
     );
 }
 
 void MainWindow::onTempChanged(int temp) {
-    QString color = (temp >= 110) ? "#C03020" : "#C8A96E";
+    QString color = (temp >= 110) ? "#FF4444" : "#FFFFFF";
     ui->tempValueLabel->setText(QString::number(temp) + "°C");
     ui->tempValueLabel->setStyleSheet(
-        QString("color: %1; font-size: 28px; font-weight: bold; background: transparent;")
+        QString("color: %1; font-size: 20px; font-weight: bold; background: transparent;")
             .arg(color)
     );
 }
@@ -196,7 +190,7 @@ void MainWindow::onUpdateReady() {
     if (!update_banner_) return;
     update_banner_->setStyleSheet(
         "background-color: #1A3A10; color: #60C030;"
-        "font-size: 13px; padding: 4px 12px; border-radius: 6px;"
+        "font-size: 12px; padding: 4px 12px; border-radius: 4px;"
     );
     update_banner_->setText("업데이트 완료 — 재시작 중...");
     update_banner_->show();
@@ -211,8 +205,8 @@ void MainWindow::onUpdateReady() {
 void MainWindow::onUpdateError(const QString &msg) {
     if (!update_banner_) return;
     update_banner_->setStyleSheet(
-        "background-color: #3A1010; color: #D05030;"
-        "font-size: 13px; padding: 4px 12px; border-radius: 6px;"
+        "background-color: #3A1010; color: #FF4444;"
+        "font-size: 12px; padding: 4px 12px; border-radius: 4px;"
     );
     update_banner_->setText("업데이트 실패: " + msg);
     update_banner_->show();

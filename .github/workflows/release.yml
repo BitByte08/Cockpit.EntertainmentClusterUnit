@@ -99,7 +99,10 @@ jobs:
           files: |
             cluster-arm64
             build-info.txt
+            VERSION
             scripts/install.sh
             scripts/update.sh
+            scripts/cluster-kiosk.service
+            scripts/cluster-update.service
           generate_release_notes: true
           make_latest: true

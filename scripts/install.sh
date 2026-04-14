@@ -4,7 +4,7 @@
 # Seengreat RS485 Dual CAN I HAT 기반
 # 참고: https://seengreat.com/wiki/83/rs485-dual-can-i
 # ============================================================
-set -euo pipefail
+set -uo pipefail
 
 INSTALL_DIR="/opt/cluster"
 BINARY_SRC="${1:-./cluster-arm64}"   # 첫 번째 인수로 바이너리 경로 지정 가능
@@ -119,16 +119,32 @@ fi
 
 # update.sh 복사
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "${SCRIPT_DIR}/update.sh" ]]; then
-    cp "${SCRIPT_DIR}/update.sh" "${INSTALL_DIR}/update.sh"
+find_file() {
+    local names=("$@")
+    for name in "${names[@]}"; do
+        for dir in "$SCRIPT_DIR" "$SCRIPT_DIR/scripts" "$(dirname "$BINARY_SRC")"; do
+            if [[ -f "${dir}/${name}" ]]; then
+                echo "${dir}/${name}"
+                return 0
+            fi
+        done
+    done
+    return 1
+}
+
+UPDATE_SH="$(find_file update.sh || true)"
+if [[ -n "$UPDATE_SH" ]]; then
+    cp "$UPDATE_SH" "${INSTALL_DIR}/update.sh"
     chmod +x "${INSTALL_DIR}/update.sh"
     info "update.sh 설치 완료"
+else
+    warn "update.sh를 찾을 수 없음"
 fi
 
 # 초기 VERSION 파일
 CURRENT_VERSION="0.0.0"
-[[ -f "${SCRIPT_DIR}/../VERSION" ]] && \
-    CURRENT_VERSION=$(tr -d '[:space:]' < "${SCRIPT_DIR}/../VERSION")
+VERSION_FILE="$(find_file VERSION || true)"
+[[ -n "$VERSION_FILE" ]] && CURRENT_VERSION=$(tr -d '[:space:]' < "$VERSION_FILE")
 echo "$CURRENT_VERSION" > "${INSTALL_DIR}/VERSION"
 info "VERSION: $CURRENT_VERSION"
 
@@ -139,38 +155,21 @@ section "6/7 systemd 서비스 등록"
 if [[ -f "${SCRIPT_DIR}/cluster-update.service" ]]; then
     cp "${SCRIPT_DIR}/cluster-update.service" \
        /etc/systemd/system/cluster-update.service
-fi
-
-# 키오스크 앱 서비스
-if [[ -f "${SCRIPT_DIR}/cluster-kiosk.service" ]]; then
-    cp "${SCRIPT_DIR}/cluster-kiosk.service" \
-       /etc/systemd/system/cluster-kiosk.service
 else
-    cat > /etc/systemd/system/cluster-kiosk.service << EOF
-[Unit]
-Description=Car Cluster Kiosk Application
-After=cluster-update.service can-setup.service graphical.target
-Wants=cluster-update.service can-setup.service
-
-[Service]
-Type=simple
-User=${PI_USER}
-Group=${PI_USER}
-WorkingDirectory=${INSTALL_DIR}
-Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/${PI_USER}/.Xauthority
-Environment=QT_QPA_PLATFORM=xcb
-Environment=XDG_RUNTIME_DIR=/run/user/1000
-ExecStartPre=/bin/bash -c "until xdpyinfo -display :0 >/dev/null 2>&1; do sleep 0.5; done"
-ExecStart=${INSTALL_DIR}/cluster
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=graphical.target
-EOF
+    error "cluster-update.service 파일을 찾을 수 없습니다"
+    exit 1
 fi
-info "cluster-kiosk.service 생성 완료"
+
+# 키오스크 앱 서비스 (사용자명 치환)
+if [[ -f "${SCRIPT_DIR}/cluster-kiosk.service" ]]; then
+    sed "s/User=pi/User=${PI_USER}/g; s/Group=pi/Group=${PI_USER}/g; s|/home/pi/|/home/${PI_USER}/|g" \
+        "${SCRIPT_DIR}/cluster-kiosk.service" \
+        > /etc/systemd/system/cluster-kiosk.service
+else
+    error "cluster-kiosk.service 파일을 찾을 수 없습니다"
+    exit 1
+fi
+info "서비스 파일 설치 완료"
 
 # X 서버 자동 시작 (.xinitrc)
 XINIT_FILE="/home/${PI_USER}/.xinitrc"
@@ -180,13 +179,14 @@ cat > "$XINIT_FILE" << 'XINITEOF'
 xset s off
 xset s noblank
 xset -dpms
-# 마우스 커서 숨기기
-unclutter -idle 0 &
+# 마우스 커서 완전히 숨기기
+xsetroot -cursor_name none &
+unclutter -idle 0 -root &
 # 창 관리자
 openbox &
 # 클러스터 앱 실행 (종료시 재시작)
 while true; do
-    /opt/cluster/cluster
+    CLUSTER_KIOSK=1 /opt/cluster/cluster
     sleep 1
 done
 XINITEOF
@@ -217,9 +217,9 @@ EOF
 info "tty1 자동 로그인 설정 완료 (${PI_USER})"
 
 systemctl daemon-reload
-systemctl enable can-setup.service
-systemctl enable cluster-update.service
-systemctl enable cluster-kiosk.service
+systemctl enable can-setup.service        || warn "can-setup.service enable 실패"
+systemctl enable cluster-update.service   || warn "cluster-update.service enable 실패"
+systemctl enable cluster-kiosk.service    || warn "cluster-kiosk.service enable 실패"
 info "서비스 활성화 완료"
 
 # ── 7. RS485 직렬 포트 설정 ──────────────────────────────────────────────────

@@ -14,7 +14,7 @@
    <string>Digital Cluster</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background-color: #1C1008;</string>
+    <string notr="true">background-color: #000000;</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">

@@ -1,5 +1,7 @@
 #include "ClusterModel.hpp"
+#ifndef _WIN32
 #include <linux/can.h>
+#endif
 #include <QThread>
 #include <iostream>
 

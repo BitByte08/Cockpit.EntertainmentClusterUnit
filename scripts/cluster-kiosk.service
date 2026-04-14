@@ -15,6 +15,7 @@ Environment=XAUTHORITY=/home/pi/.Xauthority
 Environment=QT_QPA_PLATFORM=xcb
 Environment=QT_QPA_PLATFORMTHEME=
 Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=CLUSTER_KIOSK=1
 
 # X 서버가 준비될 때까지 대기 후 실행
 ExecStartPre=/bin/bash -c "until xdpyinfo -display :0 >/dev/null 2>&1; do sleep 0.5; done"

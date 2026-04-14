@@ -1,11 +1,24 @@
 set(CMAKE_AUTOMOC ON)
 
-add_library(can_interface SHARED
+set(CAN_SOURCES
     include/CANInterface.hpp
-    include/SocketCANInterface.hpp
-    src/SocketCANInterface.cpp
     src/CANInterface.cpp
 )
+
+if(WIN32)
+    list(APPEND CAN_SOURCES
+        include/can_frame_stub.hpp
+        include/StubCANInterface.hpp
+        src/StubCANInterface.cpp
+    )
+else()
+    list(APPEND CAN_SOURCES
+        include/SocketCANInterface.hpp
+        src/SocketCANInterface.cpp
+    )
+endif()
+
+add_library(can_interface STATIC ${CAN_SOURCES})
 
 find_package(Qt6 REQUIRED COMPONENTS Core)
 

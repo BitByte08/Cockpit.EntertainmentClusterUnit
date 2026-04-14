@@ -16,6 +16,7 @@ public:
     void setUnit(const QString &unit) { unit_ = unit; update(); }
     void setLabel(const QString &label) { label_ = label; update(); }
     void setMajorTicks(int ticks) { major_ticks_ = ticks; update(); }
+    void setRedZoneStart(int value) { red_zone_start_ = value; update(); }
     
     int getValue() const { return current_value_; }
 
@@ -36,6 +37,7 @@ private:
     int min_value_{0};
     int max_value_{200};
     int major_ticks_{10};
+    int red_zone_start_{180};
     QString unit_{"km/h"};
     QString label_{"SPEED"};
     

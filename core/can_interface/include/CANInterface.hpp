@@ -2,7 +2,11 @@
 #define CORE_CANINTERFACE_H
 
 #include <QObject>
+#ifdef _WIN32
+#include "can_frame_stub.hpp"
+#else
 #include <linux/can.h>
+#endif
 
 // can_frame을 Qt 메타타입으로 등록
 Q_DECLARE_METATYPE(can_frame)
