@@ -114,7 +114,10 @@ info "can-setup.service 생성 완료"
 section "5/7 클러스터 앱 설치"
 mkdir -p "$INSTALL_DIR"
 
+# 실행 중인 프로세스 강제 종료
 systemctl stop cluster-kiosk.service 2>/dev/null || true
+pkill -9 -f "/opt/cluster/cluster" 2>/dev/null || true
+sleep 1
 
 if [[ -f "$BINARY_SRC" ]]; then
     cp "$BINARY_SRC" "${INSTALL_DIR}/cluster"
