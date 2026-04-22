@@ -3,10 +3,8 @@
 #include <linux/can.h>
 #endif
 #include <QThread>
-#include <iostream>
 
 ClusterModel::ClusterModel(QObject *parent) : QObject(parent) {
-    // can_frame을 Qt 메타타입으로 등록 (스레드 간 전달을 위해)
     qRegisterMetaType<can_frame>("can_frame");
 }
 
@@ -18,21 +16,15 @@ void ClusterModel::setCANInterface(std::unique_ptr<CANInterface> can_interface) 
 
 void ClusterModel::startReceiving() {
     if (!can_interface_) return;
-    
-    // CAN interface를 별도 스레드에서 실행
     QThread *thread = new QThread;
     can_interface_->moveToThread(thread);
-    
     connect(thread, &QThread::started, can_interface_.get(), &CANInterface::start);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
-    
     thread->start();
 }
 
 void ClusterModel::stopReceiving() {
-    if (can_interface_) {
-        can_interface_->stop();
-    }
+    if (can_interface_) can_interface_->stop();
 }
 
 void ClusterModel::onFrameReceived(const can_frame &frame) {
@@ -40,52 +32,79 @@ void ClusterModel::onFrameReceived(const can_frame &frame) {
 }
 
 void ClusterModel::parseCANFrame(const can_frame &frame) {
-    // CAN ID에 따라 데이터 파싱
-    // 예시: 0x100 = 속도, 0x200 = RPM, 0x300 = 연료, 0x400 = 온도
-    
     switch (frame.can_id) {
-        case 0x100: // 속도 (km/h)
-            if (frame.can_dlc >= 2) {
-                int new_speed = (frame.data[0] << 8) | frame.data[1];
-                if (new_speed != speed_) {
-                    speed_ = new_speed;
-                    emit speedChanged(speed_);
-                }
-            }
-            break;
-            
-        case 0x200: // RPM
-            if (frame.can_dlc >= 2) {
-                int new_rpm = (frame.data[0] << 8) | frame.data[1];
-                if (new_rpm != rpm_) {
-                    rpm_ = new_rpm;
-                    emit rpmChanged(rpm_);
-                }
-            }
-            break;
-            
-        case 0x300: // 연료 레벨 (0-100%)
-            if (frame.can_dlc >= 1) {
-                int new_fuel = frame.data[0];
-                if (new_fuel != fuel_level_) {
-                    fuel_level_ = new_fuel;
-                    emit fuelLevelChanged(fuel_level_);
-                }
-            }
-            break;
-            
-        case 0x400: // 온도 (섭씨)
-            if (frame.can_dlc >= 1) {
-                int new_temp = frame.data[0];
-                if (new_temp != temperature_) {
-                    temperature_ = new_temp;
-                    emit temperatureChanged(temperature_);
-                }
-            }
-            break;
-            
-        default:
-            std::cout << "Unknown CAN ID: 0x" << std::hex << frame.can_id << std::dec << std::endl;
-            break;
+
+    // ── 0x300 SWITCH_STATUS: uint16 비트필드 (little-endian) ────────────────
+    case 0x300: {
+        if (frame.can_dlc < 2) break;
+        int flags = static_cast<int>(frame.data[0])
+                  | (static_cast<int>(frame.data[1]) << 8);
+        if (flags != switch_status_) {
+            switch_status_ = flags;
+            emit switchStatusChanged(switch_status_);
+        }
+        break;
+    }
+
+    // ── 0x301 GEAR_STATUS: byte (0=N, 1~6, 7=R) ────────────────────────────
+    case 0x301: {
+        if (frame.can_dlc < 1) break;
+        int gear = static_cast<int>(frame.data[0]);
+        if (gear != gear_) {
+            gear_ = gear;
+            emit gearChanged(gear_);
+        }
+        break;
+    }
+
+    // ── 0x400 INFO_SPEED_RPM: [속도u16×10 BE][RPM u16 BE] ─────────────────
+    case 0x400: {
+        if (frame.can_dlc < 4) break;
+        int speed = ((static_cast<int>(frame.data[0]) << 8) | frame.data[1]) / 10;
+        int rpm   = (static_cast<int>(frame.data[2]) << 8) | frame.data[3];
+        if (speed != speed_) { speed_ = speed; emit speedChanged(speed_); }
+        if (rpm   != rpm_)   { rpm_   = rpm;   emit rpmChanged(rpm_); }
+        break;
+    }
+
+    // ── 0x401 INFO_WARNING: uint16 비트필드 (little-endian) ─────────────────
+    case 0x401: {
+        if (frame.can_dlc < 2) break;
+        int flags = static_cast<int>(frame.data[0])
+                  | (static_cast<int>(frame.data[1]) << 8);
+        if (flags != warning_flags_) {
+            warning_flags_ = flags;
+            emit warningFlagsChanged(warning_flags_);
+        }
+        break;
+    }
+
+    // ── 0x500 VEHICLE_STATE: [속도u16×10 BE][RPM u16 BE][기어][ABS/TCS] ──
+    case 0x500: {
+        if (frame.can_dlc < 6) break;
+        // 속도·RPM은 0x400이 primary — 여기선 기어와 ABS/TCS만 갱신
+        int gear  = static_cast<int>(frame.data[4]);
+        bool abs_a = (frame.data[5] & 0x01) != 0;
+        bool tcs_a = (frame.data[5] & 0x02) != 0;
+        if (gear  != gear_)       { gear_       = gear;  emit gearChanged(gear_); }
+        if (abs_a != abs_active_) { abs_active_ = abs_a; emit absActiveChanged(abs_active_); }
+        if (tcs_a != tcs_active_) { tcs_active_ = tcs_a; emit tcsActiveChanged(tcs_active_); }
+        break;
+    }
+
+    // ── 0x501 ENGINE_STATE: [수온°C][유압 0~100][연료%] ──────────────────────
+    case 0x501: {
+        if (frame.can_dlc < 3) break;
+        int temp = static_cast<int>(frame.data[0]);
+        int oil  = static_cast<int>(frame.data[1]);
+        int fuel = static_cast<int>(frame.data[2]);
+        if (temp != temperature_)  { temperature_  = temp; emit temperatureChanged(temperature_); }
+        if (oil  != oil_pressure_) { oil_pressure_ = oil;  emit oilPressureChanged(oil_pressure_); }
+        if (fuel != fuel_level_)   { fuel_level_   = fuel; emit fuelLevelChanged(fuel_level_); }
+        break;
+    }
+
+    default:
+        break;
     }
 }
