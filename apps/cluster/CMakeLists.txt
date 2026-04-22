@@ -4,11 +4,14 @@ add_executable(cluster
     main.cpp
     mainwindow.cpp
     mainwindow.hpp
-    mainwindow.ui
     models/ClusterModel.cpp
     models/ClusterModel.hpp
     widgets/GaugeWidget.cpp
     widgets/GaugeWidget.hpp
+    widgets/ArcGaugeWidget.cpp
+    widgets/ArcGaugeWidget.hpp
+    widgets/IndicatorWidget.cpp
+    widgets/IndicatorWidget.hpp
     UpdateManager.cpp
     UpdateManager.hpp
 )

@@ -3,13 +3,13 @@ set(CMAKE_AUTOMOC ON)
 set(CAN_SOURCES
     include/CANInterface.hpp
     src/CANInterface.cpp
+    include/StubCANInterface.hpp
+    src/StubCANInterface.cpp
 )
 
 if(WIN32)
     list(APPEND CAN_SOURCES
         include/can_frame_stub.hpp
-        include/StubCANInterface.hpp
-        src/StubCANInterface.cpp
     )
 else()
     list(APPEND CAN_SOURCES
