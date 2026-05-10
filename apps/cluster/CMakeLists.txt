@@ -6,6 +6,10 @@ add_executable(cluster
     mainwindow.hpp
     models/ClusterModel.cpp
     models/ClusterModel.hpp
+    widgets/RpmBarWidget.cpp
+    widgets/RpmBarWidget.hpp
+    widgets/FuelBarWidget.cpp
+    widgets/FuelBarWidget.hpp
     widgets/GaugeWidget.cpp
     widgets/GaugeWidget.hpp
     widgets/ArcGaugeWidget.cpp
