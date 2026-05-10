@@ -1,0 +1,284 @@
+/* =============================================================================
+   BMW M Design System — Foundations
+   Colors, type, spacing, radii, motion. Reference these tokens everywhere.
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   FONTS
+   BMW Type Next Latin is BMW's licensed display + body typeface.
+   We do NOT have the licensed files. We substitute Inter (variable) at 700 / 300
+   per the brand guideline's documented fallback. Tracking on display headlines
+   is tightened to -0.5px to better match BMW Type's dense large-cap setting.
+   --------------------------------------------------------------------------- */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap");
+
+:root {
+  /* ===================== COLORS ===================== */
+
+  /* Brand & accent — the M tricolor + heritage blue */
+  --color-primary: #ffffff;
+  --color-m-blue-light: #0066b1;
+  --color-m-blue-dark:  #1c69d4;
+  --color-m-red:        #e22718;
+  --color-bmw-blue:     #1c69d4;          /* heritage corporate blue (alias) */
+  --color-electric-blue:#0653b6;
+
+  /* Surface */
+  --color-canvas:           #000000;
+  --color-surface-soft:     #0d0d0d;
+  --color-surface-card:     #1a1a1a;
+  --color-surface-elevated: #262626;
+  --color-carbon-gray:      #2b2b2b;
+
+  /* Hairlines & borders */
+  --color-hairline:        #3c3c3c;
+  --color-hairline-strong: #262626;
+
+  /* Text */
+  --color-on-dark:    #ffffff;
+  --color-body:       #bbbbbb;
+  --color-body-strong:#e6e6e6;
+  --color-muted:      #7e7e7e;
+
+  /* Semantic */
+  --color-warning: #f4b400;
+  --color-success: #0fa336;
+
+  /* Aliases (foreground / background semantics) */
+  --fg-1: var(--color-on-dark);
+  --fg-2: var(--color-body-strong);
+  --fg-3: var(--color-body);
+  --fg-4: var(--color-muted);
+  --bg-0: var(--color-canvas);
+  --bg-1: var(--color-surface-soft);
+  --bg-2: var(--color-surface-card);
+  --bg-3: var(--color-surface-elevated);
+
+  /* M tricolor stripe gradient (sharp stops, never smooth) */
+  --m-stripe: linear-gradient(
+    to right,
+    var(--color-m-blue-light) 0%,
+    var(--color-m-blue-light) 33.33%,
+    var(--color-m-blue-dark)  33.33%,
+    var(--color-m-blue-dark)  66.66%,
+    var(--color-m-red)        66.66%,
+    var(--color-m-red)        100%
+  );
+
+  /* ===================== TYPOGRAPHY ===================== */
+
+  --font-family-display: "Inter", "BMW Type Next Latin", -apple-system,
+                         BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family-body:    "Inter", "BMW Type Next Latin", -apple-system,
+                         BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Two cuts only — heavy display, light body. Never blur the contrast. */
+  --font-weight-display: 700;
+  --font-weight-body:    300;
+  --font-weight-regular: 400;
+
+  /* Display scale — uppercase, weight 700, tight tracking */
+  --type-display-xl-size: 80px;   --type-display-xl-lh: 1.0;   --type-display-xl-track: -0.5px;
+  --type-display-lg-size: 56px;   --type-display-lg-lh: 1.05;  --type-display-lg-track: -0.5px;
+  --type-display-md-size: 40px;   --type-display-md-lh: 1.1;   --type-display-md-track: -0.25px;
+  --type-display-sm-size: 32px;   --type-display-sm-lh: 1.15;  --type-display-sm-track: 0;
+
+  /* Title scale */
+  --type-title-lg-size: 24px;     --type-title-lg-lh: 1.3;
+  --type-title-md-size: 20px;     --type-title-md-lh: 1.4;
+  --type-title-sm-size: 18px;     --type-title-sm-lh: 1.4;
+
+  /* Body */
+  --type-body-md-size: 16px;      --type-body-md-lh: 1.5;
+  --type-body-sm-size: 14px;      --type-body-sm-lh: 1.5;
+  --type-caption-size: 12px;      --type-caption-lh: 1.4;
+
+  /* Letterspaced labels — the "machined" voice */
+  --type-label-uppercase-size: 14px;   --type-label-uppercase-track: 1.5px;
+  --type-button-size:          14px;   --type-button-track:          1.5px;
+  --type-nav-link-size:        14px;   --type-nav-link-track:        0.5px;
+
+  /* ===================== SPACING ===================== */
+  /* Base unit 4px */
+  --space-xxs: 4px;
+  --space-xs:  8px;
+  --space-sm:  12px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  40px;
+  --space-xxl: 64px;
+  --space-section: 96px;
+
+  /* ===================== RADII ===================== */
+  --radius-none: 0px;
+  --radius-xs:   2px;
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-full: 9999px;
+
+  /* ===================== LAYOUT ===================== */
+  --container-max: 1440px;
+  --m-stripe-height: 4px;
+
+  /* ===================== ELEVATION ===================== */
+  /* The system uses no drop shadows — depth is photography + surface contrast.
+     These exist as escape hatches only; prefer hairline borders.            */
+  --hairline-1: 1px solid var(--color-hairline);
+  --hairline-2: 1px solid var(--color-hairline-strong);
+
+  /* ===================== MOTION ===================== */
+  /* Animation timings are not in BMW M's public spec — these are reasonable
+     defaults inspired by the "engineered precision" voice: short, linear-ish. */
+  --motion-fast:  120ms cubic-bezier(0.2, 0, 0, 1);
+  --motion-base:  200ms cubic-bezier(0.2, 0, 0, 1);
+  --motion-slow:  400ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* =============================================================================
+   SEMANTIC ELEMENT STYLES
+   Apply to a wrapper with class `bmwm-type` (or use globally if the page
+   is a pure BMW M surface).
+   ============================================================================= */
+
+.bmwm-type,
+.bmwm-type * {
+  font-family: var(--font-family-body);
+  font-weight: var(--font-weight-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.bmwm-type h1,
+.bmwm-display-xl {
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-display);
+  font-size: var(--type-display-xl-size);
+  line-height: var(--type-display-xl-lh);
+  letter-spacing: var(--type-display-xl-track);
+  text-transform: uppercase;
+  color: var(--fg-1);
+  margin: 0;
+}
+
+.bmwm-type h2,
+.bmwm-display-lg {
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-display);
+  font-size: var(--type-display-lg-size);
+  line-height: var(--type-display-lg-lh);
+  letter-spacing: var(--type-display-lg-track);
+  text-transform: uppercase;
+  color: var(--fg-1);
+  margin: 0;
+}
+
+.bmwm-type h3,
+.bmwm-display-md {
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-display);
+  font-size: var(--type-display-md-size);
+  line-height: var(--type-display-md-lh);
+  letter-spacing: var(--type-display-md-track);
+  text-transform: uppercase;
+  color: var(--fg-1);
+  margin: 0;
+}
+
+.bmwm-type h4,
+.bmwm-display-sm {
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-display);
+  font-size: var(--type-display-sm-size);
+  line-height: var(--type-display-sm-lh);
+  text-transform: uppercase;
+  color: var(--fg-1);
+  margin: 0;
+}
+
+.bmwm-title-lg {
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-display);
+  font-size: var(--type-title-lg-size);
+  line-height: var(--type-title-lg-lh);
+  color: var(--fg-1);
+}
+
+.bmwm-title-md {
+  font-family: var(--font-family-body);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--type-title-md-size);
+  line-height: var(--type-title-md-lh);
+  color: var(--fg-2);
+}
+
+.bmwm-title-sm {
+  font-family: var(--font-family-body);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--type-title-sm-size);
+  line-height: var(--type-title-sm-lh);
+  color: var(--fg-2);
+}
+
+.bmwm-type p,
+.bmwm-body-md {
+  font-family: var(--font-family-body);
+  font-weight: var(--font-weight-body);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-lh);
+  color: var(--fg-3);
+}
+
+.bmwm-body-sm {
+  font-family: var(--font-family-body);
+  font-weight: var(--font-weight-body);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-lh);
+  color: var(--fg-3);
+}
+
+.bmwm-caption {
+  font-family: var(--font-family-body);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-lh);
+  letter-spacing: 0.5px;
+  color: var(--fg-4);
+}
+
+.bmwm-label-uppercase {
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-display);
+  font-size: var(--type-label-uppercase-size);
+  line-height: 1.3;
+  letter-spacing: var(--type-label-uppercase-track);
+  text-transform: uppercase;
+  color: var(--fg-1);
+}
+
+.bmwm-button-label {
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-display);
+  font-size: var(--type-button-size);
+  line-height: 1;
+  letter-spacing: var(--type-button-track);
+  text-transform: uppercase;
+}
+
+.bmwm-nav-link {
+  font-family: var(--font-family-body);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--type-nav-link-size);
+  line-height: 1.4;
+  letter-spacing: 0.5px;
+  color: var(--fg-1);
+}
+
+/* =============================================================================
+   UTILITY: M tricolor stripe divider (4px, sharp stops)
+   ============================================================================= */
+.bmwm-m-stripe {
+  display: block;
+  height: var(--m-stripe-height);
+  width: 100%;
+  background: var(--m-stripe);
+}

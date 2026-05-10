@@ -1,0 +1,141 @@
+/* ============================================================================
+   Cockpit — shared instrument styles built on BMW M Design System tokens
+   ============================================================================ */
+
+@import url("design-system/colors_and_type.css");
+
+/* ----- Cluster / Entertainment screen base ----- */
+.cp-screen {
+  width: 800px;
+  height: 480px;
+  background: #000000;
+  color: #ffffff;
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-body);
+  position: relative;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+}
+
+/* Day mode (instruments brighter, deeper black contrast) */
+.cp-screen[data-theme="day"] {
+  background: #050505;
+}
+.cp-screen[data-theme="night"] {
+  background: #000000;
+}
+
+/* Drive mode accent token — every layout reads from --accent */
+.cp-screen[data-mode="comfort"] { --accent: #1c69d4; --accent-soft: #0653b6; }
+.cp-screen[data-mode="sport"]   { --accent: #e22718; --accent-soft: #1c69d4; }
+.cp-screen[data-mode="track"]   { --accent: #e22718; --accent-soft: #e22718; }
+
+/* ----- Shared text utilities ----- */
+.cp-num {
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.cp-cap {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+.cp-mono {
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ----- M tricolor stripe (sharp stops, never gradient) ----- */
+.cp-mstripe {
+  display: block;
+  background: linear-gradient(
+    to right,
+    #0066b1 0%, #0066b1 33.33%,
+    #1c69d4 33.33%, #1c69d4 66.66%,
+    #e22718 66.66%, #e22718 100%
+  );
+}
+.cp-mstripe-vert {
+  display: block;
+  background: linear-gradient(
+    to bottom,
+    #0066b1 0%, #0066b1 33.33%,
+    #1c69d4 33.33%, #1c69d4 66.66%,
+    #e22718 66.66%, #e22718 100%
+  );
+}
+
+/* ----- RPM bar (the sporty signature) ----- */
+.rpm-bar {
+  display: flex;
+  gap: 2px;
+  height: 100%;
+}
+.rpm-cell {
+  flex: 1;
+  background: #1a1a1a;
+  border-radius: 0;
+  position: relative;
+}
+.rpm-cell.on { background: #ffffff; }
+.rpm-cell.warn { background: var(--color-warning); }
+.rpm-cell.red { background: #e22718; }
+
+/* ----- Hairline divider ----- */
+.cp-hairline {
+  background: #3c3c3c;
+}
+
+/* ----- Status bar atoms ----- */
+.cp-icon-stroke {
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  fill: none;
+}
+
+/* ----- Map placeholder pattern (used inside nav screens) ----- */
+.map-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    /* primary route (gold/white) */
+    linear-gradient(135deg, transparent 47%, #ffffff 47%, #ffffff 49%, transparent 49%) no-repeat,
+    /* roads — diagonals */
+    repeating-linear-gradient(
+      28deg,
+      transparent 0 90px,
+      rgba(80, 90, 110, 0.5) 90px 91px
+    ),
+    repeating-linear-gradient(
+      118deg,
+      transparent 0 140px,
+      rgba(70, 80, 100, 0.45) 140px 141px
+    ),
+    /* base terrain */
+    radial-gradient(ellipse at 30% 40%, #1a2230 0%, #0a0e15 65%);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+}
+
+.map-bg::after {
+  /* faint contour suggestion */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 70% 60%, rgba(28, 105, 212, 0.08) 0%, transparent 35%),
+    radial-gradient(circle at 20% 80%, rgba(28, 105, 212, 0.05) 0%, transparent 30%);
+  pointer-events: none;
+}
+
+/* ----- Generic card ----- */
+.cp-card {
+  background: #0d0d0d;
+  border: 1px solid #262626;
+  border-radius: 0;
+  padding: 12px 16px;
+}
