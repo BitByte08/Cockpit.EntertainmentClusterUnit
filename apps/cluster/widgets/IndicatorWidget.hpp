@@ -64,7 +64,8 @@ private:
     bool          blink_state_{false};   // true → 꺼진 상태 (점멸 중)
     QTimer       *blink_timer_;
 
-    static constexpr QColor kDimColor{0x28, 0x28, 0x38};
+    // BMW M: dim = #262626
+    static constexpr QColor kDimColor{0x26, 0x26, 0x26};
 };
 
 #endif // CLUSTER_INDICATORWIDGET_HPP

@@ -26,23 +26,24 @@ void ArcGaugeWidget::setValue(int value) {
 QColor ArcGaugeWidget::arcColor(double ratio) const {
     if (warn_threshold_ >= 0) {
         // 수온 모드 (high_is_warn_=true): 낮을수록 파랑, 높을수록 빨강
+        // BMW M 수온 모드: 파랑(냉각) → 녹색(정상) → 황색(주의) → 적색(과열)
         if (high_is_warn_) {
             double wRatio = static_cast<double>(warn_threshold_ - min_) / (max_ - min_);
-            if (ratio < wRatio * 0.7)        return QColor(0x00, 0xAA, 0xFF); // 파랑(냉각)
-            if (ratio < wRatio)              return QColor(0x00, 0xCC, 0x55); // 녹색(정상)
-            if (ratio < wRatio + 0.1)        return QColor(0xFF, 0xB3, 0x00); // 황색(주의)
-            return QColor(0xFF, 0x33, 0x33);                                   // 적색(과열)
+            if (ratio < wRatio * 0.7)    return QColor(0x1C, 0x69, 0xD4); // M blue(냉각)
+            if (ratio < wRatio)          return QColor(0x0F, 0xA3, 0x36); // 녹색(정상)
+            if (ratio < wRatio + 0.1)    return QColor(0xF4, 0xB4, 0x00); // 황색(주의)
+            return QColor(0xE2, 0x27, 0x18);                               // M red(과열)
         }
-        // 연료 모드 (high_is_warn_=false): 높을수록 좋음
+        // BMW M 연료 모드: 녹색(충분) → 황색(주의) → M red(부족)
         double wRatio = static_cast<double>(warn_threshold_ - min_) / (max_ - min_);
-        if (ratio > wRatio * 2.0)  return QColor(0x00, 0xCC, 0x55); // 녹색(충분)
-        if (ratio > wRatio)        return QColor(0xFF, 0xB3, 0x00); // 황색(주의)
-        return QColor(0xFF, 0x33, 0x33);                             // 적색(부족)
+        if (ratio > wRatio * 2.0) return QColor(0x0F, 0xA3, 0x36);
+        if (ratio > wRatio)       return QColor(0xF4, 0xB4, 0x00);
+        return QColor(0xE2, 0x27, 0x18);
     }
-    // 기본: 녹→황→적
-    if (ratio < 0.6) return QColor(0x00, 0xCC, 0x55);
-    if (ratio < 0.8) return QColor(0xFF, 0xB3, 0x00);
-    return QColor(0xFF, 0x33, 0x33);
+    // 기본: 녹→황→M red
+    if (ratio < 0.6) return QColor(0x0F, 0xA3, 0x36);
+    if (ratio < 0.8) return QColor(0xF4, 0xB4, 0x00);
+    return QColor(0xE2, 0x27, 0x18);
 }
 
 void ArcGaugeWidget::paintEvent(QPaintEvent *) {
@@ -63,8 +64,8 @@ void ArcGaugeWidget::paintEvent(QPaintEvent *) {
     const double startAngle = 225.0;
     const double spanAngle  = -270.0;
 
-    // 배경 아크
-    p.setPen(QPen(QColor(0x1A, 0x1A, 0x2A), arcThick, Qt::SolidLine, Qt::FlatCap));
+    // 배경 아크 — BMW M: #1a1a1a
+    p.setPen(QPen(QColor(0x1A, 0x1A, 0x1A), arcThick, Qt::SolidLine, Qt::FlatCap));
     p.setBrush(Qt::NoBrush);
     p.drawArc(arcRect, static_cast<int>(startAngle * 16), static_cast<int>(spanAngle * 16));
 
@@ -89,7 +90,7 @@ void ArcGaugeWidget::paintEvent(QPaintEvent *) {
 
     // 눈금 틱 (최소/최대/중간)
     {
-        p.setPen(QPen(QColor(0x44, 0x44, 0x66), 1));
+        p.setPen(QPen(QColor(0x3C, 0x3C, 0x3C), 1));
         int ticks = 5;
         for (int i = 0; i <= ticks; i++) {
             double frac = static_cast<double>(i) / ticks;
@@ -109,7 +110,8 @@ void ArcGaugeWidget::paintEvent(QPaintEvent *) {
         f.setBold(true);
         f.setLetterSpacing(QFont::AbsoluteSpacing, 2);
         p.setFont(f);
-        p.setPen(QColor(0x00, 0xCC, 0xBB));
+        // BMW M blue accent
+        p.setPen(QColor(0x1C, 0x69, 0xD4));
         int labelY = static_cast<int>(cy - radius * 0.78);
         p.drawText(QRect(0, labelY, w, 16), Qt::AlignCenter, label_);
     }
@@ -135,7 +137,7 @@ void ArcGaugeWidget::paintEvent(QPaintEvent *) {
         QFont f;
         f.setPointSize(10);
         p.setFont(f);
-        p.setPen(QColor(0x88, 0x88, 0xAA));
+        p.setPen(QColor(0x7E, 0x7E, 0x7E));
         p.drawText(QRect(0, static_cast<int>(cy + 8), w, 16), Qt::AlignCenter, unit_);
     }
 }

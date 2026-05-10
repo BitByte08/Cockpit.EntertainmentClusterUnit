@@ -58,8 +58,8 @@ void IndicatorWidget::paintEvent(QPaintEvent *) {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
 
-    // 배경: 투명 (부모 배경 그대로)
-    p.fillRect(rect(), QColor(0x0A, 0x0A, 0x10));
+    // 배경: BMW M 순수 블랙
+    p.fillRect(rect(), QColor(0x00, 0x00, 0x00));
 
     // 현재 아이콘 색상 결정
     bool lit = active_ && !(blinking_ && blink_state_);

@@ -41,24 +41,24 @@ void GaugeWidget::drawBackground(QPainter &p, int side) {
     p.translate(width() / 2.0, height() / 2.0);
     p.scale(side / 300.0, side / 300.0);
 
-    // 외곽 링
+    // 외곽 링 — BMW M: 순수 블랙 베이스
     QRadialGradient outerGrad(0, 0, 148);
-    outerGrad.setColorAt(0.0,  QColor(0x12, 0x12, 0x1A));
-    outerGrad.setColorAt(0.88, QColor(0x1A, 0x1A, 0x26));
-    outerGrad.setColorAt(1.0,  QColor(0x40, 0x40, 0x58));
+    outerGrad.setColorAt(0.0,  QColor(0x0A, 0x0A, 0x0A));
+    outerGrad.setColorAt(0.88, QColor(0x14, 0x14, 0x14));
+    outerGrad.setColorAt(1.0,  QColor(0x2A, 0x2A, 0x2A));
     p.setBrush(outerGrad);
-    p.setPen(QPen(QColor(0x50, 0x50, 0x70), 1.5));
+    p.setPen(QPen(QColor(0x3C, 0x3C, 0x3C), 1.5));
     p.drawEllipse(QPoint(0,0), 148, 148);
 
     // 내부 다크 그라디언트
     QRadialGradient innerGrad(0, -20, 130);
-    innerGrad.setColorAt(0.0, QColor(0x0C, 0x0C, 0x14));
-    innerGrad.setColorAt(1.0, QColor(0x08, 0x08, 0x10));
+    innerGrad.setColorAt(0.0, QColor(0x06, 0x06, 0x06));
+    innerGrad.setColorAt(1.0, QColor(0x00, 0x00, 0x00));
     p.setBrush(innerGrad);
-    p.setPen(QPen(QColor(0x28, 0x28, 0x3A), 1));
+    p.setPen(QPen(QColor(0x26, 0x26, 0x26), 1));
     p.drawEllipse(QPoint(0,0), 135, 135);
 
-    // 레드존 아크
+    // 레드존 아크 — BMW M red #e22718
     if (red_zone_start_ > min_value_ && red_zone_start_ < max_value_) {
         double redRatio = static_cast<double>(red_zone_start_ - min_value_) /
                           (max_value_ - min_value_);
@@ -66,14 +66,14 @@ void GaugeWidget::drawBackground(QPainter &p, int side) {
         double span       = 270.0 * (1.0 - redRatio);
 
         // 글로우
-        p.setPen(QPen(QColor(255, 30, 30, 55), 10, Qt::SolidLine, Qt::FlatCap));
+        p.setPen(QPen(QColor(0xE2, 0x27, 0x18, 55), 10, Qt::SolidLine, Qt::FlatCap));
         p.setBrush(Qt::NoBrush);
         p.drawArc(QRect(-138, -138, 276, 276),
                   static_cast<int>((90.0 - startAngle) * 16),
                   static_cast<int>(-span * 16));
 
         // 실선
-        p.setPen(QPen(QColor(0xFF, 0x22, 0x22), 5, Qt::SolidLine, Qt::FlatCap));
+        p.setPen(QPen(QColor(0xE2, 0x27, 0x18), 5, Qt::SolidLine, Qt::FlatCap));
         p.drawArc(QRect(-138, -138, 276, 276),
                   static_cast<int>((90.0 - startAngle) * 16),
                   static_cast<int>(-span * 16));
@@ -100,7 +100,7 @@ void GaugeWidget::drawScale(QPainter &p, int side) {
         int    val   = min_value_ + (max_value_ - min_value_) * i / majTicks;
         bool   red   = (val >= red_zone_start_);
 
-        QColor tickCol = red ? QColor(0xFF, 0x44, 0x44) : QColor(0xCC, 0xCC, 0xDD);
+        QColor tickCol = red ? QColor(0xE2, 0x27, 0x18) : QColor(0xFF, 0xFF, 0xFF);
         p.setPen(QPen(tickCol, red ? 3 : 2.5));
         p.drawLine(QPointF(108 * qCos(rad), -108 * qSin(rad)),
                    QPointF(128 * qCos(rad), -128 * qSin(rad)));
@@ -111,14 +111,14 @@ void GaugeWidget::drawScale(QPainter &p, int side) {
         f.setPointSize(red ? 12 : 11);
         f.setBold(true);
         p.setFont(f);
-        p.setPen(red ? QColor(0xFF, 0x77, 0x77) : QColor(0xCC, 0xCC, 0xDD));
+        p.setPen(red ? QColor(0xE2, 0x27, 0x18) : QColor(0x7E, 0x7E, 0x7E));
         int tx = static_cast<int>(88 * qCos(rad));
         int ty = static_cast<int>(-88 * qSin(rad));
         p.drawText(QRect(tx - 18, ty - 12, 36, 24), Qt::AlignCenter, text);
     }
 
-    // 보조 눈금
-    p.setPen(QPen(QColor(0x44, 0x44, 0x60), 1));
+    // 보조 눈금 — BMW M: #3c3c3c
+    p.setPen(QPen(QColor(0x3C, 0x3C, 0x3C), 1));
     for (int i = 0; i < majTicks; ++i) {
         for (int j = 1; j < minTicks; ++j) {
             double angle = startAngle - spanAngle * (i + j / static_cast<double>(minTicks)) / majTicks;
@@ -170,10 +170,11 @@ void GaugeWidget::drawNeedle(QPainter &p, int side) {
     needle.lineTo(3, -10);
     needle.closeSubpath();
 
+    // BMW M needle colors: white → warn amber → M red
     QColor needleColor;
-    if (ratio < 0.6)       needleColor = QColor(0x00, 0xD8, 0xFF);
-    else if (ratio < 0.82) needleColor = QColor(0xFF, 0xC0, 0x00);
-    else                   needleColor = QColor(0xFF, 0x33, 0x33);
+    if (ratio < 0.6)       needleColor = QColor(0xFF, 0xFF, 0xFF);
+    else if (ratio < 0.82) needleColor = QColor(0xF4, 0xB4, 0x00);
+    else                   needleColor = QColor(0xE2, 0x27, 0x18);
 
     QLinearGradient grad(0, -128, 0, 0);
     grad.setColorAt(0.0, needleColor.lighter(160));
@@ -194,17 +195,17 @@ void GaugeWidget::drawCenter(QPainter &p, int side) {
     p.translate(width() / 2.0, height() / 2.0);
     p.scale(side / 300.0, side / 300.0);
 
-    // 외부 링
+    // 외부 링 — BMW M: 다크 메탈릭
     QRadialGradient hubGrad(0, -2, 14);
-    hubGrad.setColorAt(0.0, QColor(0xC0, 0xC0, 0xD0));
-    hubGrad.setColorAt(0.5, QColor(0x60, 0x60, 0x80));
-    hubGrad.setColorAt(1.0, QColor(0x28, 0x28, 0x38));
+    hubGrad.setColorAt(0.0, QColor(0xA0, 0xA0, 0xA0));
+    hubGrad.setColorAt(0.5, QColor(0x3C, 0x3C, 0x3C));
+    hubGrad.setColorAt(1.0, QColor(0x14, 0x14, 0x14));
     p.setBrush(hubGrad);
-    p.setPen(QPen(QColor(0x50, 0x50, 0x70), 1));
+    p.setPen(QPen(QColor(0x3C, 0x3C, 0x3C), 1));
     p.drawEllipse(QPoint(0,0), 13, 13);
 
-    // 중심 레드 닷
-    p.setBrush(QColor(0xFF, 0x22, 0x22));
+    // 중심 레드 닷 — BMW M red
+    p.setBrush(QColor(0xE2, 0x27, 0x18));
     p.setPen(Qt::NoPen);
     p.drawEllipse(QPoint(0,0), 5, 5);
 
@@ -225,9 +226,10 @@ void GaugeWidget::drawDigital(QPainter &p, int side) {
         f.setBold(true);
         f.setLetterSpacing(QFont::AbsoluteSpacing, 2);
         p.setFont(f);
-        p.setPen(QColor(0x00, 0xCC, 0xBB));
+        // BMW M blue accent for label
+        p.setPen(QColor(0x1C, 0x69, 0xD4));
         p.drawText(QRect(-70, -62, 140, 18), Qt::AlignCenter, label_);
-        p.setPen(QPen(QColor(0x00, 0xCC, 0xBB, 180), 1));
+        p.setPen(QPen(QColor(0x1C, 0x69, 0xD4, 180), 1));
         p.drawLine(-30, -46, 30, -46);
     }
 
@@ -246,7 +248,7 @@ void GaugeWidget::drawDigital(QPainter &p, int side) {
         QFont f;
         f.setPointSize(10);
         p.setFont(f);
-        p.setPen(QColor(0x77, 0x77, 0x99));
+        p.setPen(QColor(0x7E, 0x7E, 0x7E));
         p.drawText(QRect(-50, 76, 100, 16), Qt::AlignCenter, unit_);
     }
 
