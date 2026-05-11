@@ -49,6 +49,7 @@ public:
 
 public slots:
     void setSpeed(int kmh);
+    void onDistanceChanged(double meters);   // 경로 거리 업데이트
 
 protected:
     void resizeEvent(QResizeEvent *) override;
@@ -66,6 +67,8 @@ private:
     QWidget       *speed_limit_{nullptr};
     QWidget       *zoom_ctrl_{nullptr};
     QLabel        *speed_val_label_{nullptr};
+    QLabel        *eta_title_label_{nullptr};
+    QLabel        *eta_dist_label_{nullptr};
 };
 
 // ── 메인 엔터테인먼트 윈도우 ──────────────────────────────────────────────────

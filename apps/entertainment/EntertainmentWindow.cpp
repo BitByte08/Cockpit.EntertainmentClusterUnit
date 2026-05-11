@@ -160,37 +160,35 @@ void NavScreen::buildETACard() {
     vb->setContentsMargins(18, 12, 18, 12);
     vb->setSpacing(0);
 
-    auto *dest = new QLabel("NAVIGATION · DEMO CITY", eta_card_);
+    // 타이틀 (경로 없을 때: "NAVIGATION · DEMO CITY", 있을 때: "▶ ROUTE SET")
+    eta_title_label_ = new QLabel("NAVIGATION · DEMO CITY", eta_card_);
     {
         QFont f; f.setPointSize(7); f.setBold(true);
         f.setLetterSpacing(QFont::AbsoluteSpacing, 1);
-        dest->setFont(f);
-        dest->setStyleSheet("color: #7e7e7e;");
+        eta_title_label_->setFont(f);
+        eta_title_label_->setStyleSheet("color: #7e7e7e;");
     }
-    vb->addWidget(dest);
-    vb->addSpacing(6);
+    vb->addWidget(eta_title_label_);
+    vb->addSpacing(4);
 
-    auto *row = new QHBoxLayout;
-    row->setSpacing(8);
-
-    auto *zoomLbl = new QLabel("ZOOM", eta_card_);
+    // 거리 레이블 (경로 없을 때: "GPS · ACTIVE", 있을 때: "1234 m")
+    eta_dist_label_ = new QLabel("GPS · ACTIVE", eta_card_);
     {
-        QFont f; f.setPointSize(7); f.setBold(true);
-        f.setLetterSpacing(QFont::AbsoluteSpacing, 1);
-        zoomLbl->setFont(f);
-        zoomLbl->setStyleSheet("color: #7e7e7e;");
+        QFont f; f.setPointSize(11); f.setBold(true);
+        eta_dist_label_->setFont(f);
+        eta_dist_label_->setStyleSheet(QString("color: %1;").arg(kOK.name()));
     }
-    row->addWidget(zoomLbl);
+    vb->addWidget(eta_dist_label_);
+    vb->addSpacing(2);
 
-    auto *posLbl = new QLabel("GPS · ACTIVE", eta_card_);
+    // 지도 클릭 안내 (작은 힌트 텍스트)
+    auto *hint = new QLabel("지도 클릭으로 경로 설정", eta_card_);
     {
-        QFont f; f.setPointSize(7);
-        posLbl->setFont(f);
-        posLbl->setStyleSheet(QString("color: %1;").arg(kOK.name()));
+        QFont f; f.setPointSize(6);
+        hint->setFont(f);
+        hint->setStyleSheet("color: #444444;");
     }
-    row->addWidget(posLbl);
-    row->addStretch();
-    vb->addLayout(row);
+    vb->addWidget(hint);
 
     // M stripe 하단
     auto *stripe = new QWidget(eta_card_);
@@ -200,7 +198,7 @@ void NavScreen::buildETACard() {
         "stop:0 #0066b1,stop:0.333 #0066b1,"
         "stop:0.334 #1c69d4,stop:0.666 #1c69d4,"
         "stop:0.667 #e22718,stop:1 #e22718);");
-    vb->addSpacing(8);
+    vb->addSpacing(6);
     vb->addWidget(stripe);
 }
 
@@ -283,6 +281,32 @@ void NavScreen::setSpeed(int kmh) {
     else if (kmh < 130) col = "#f4b400";
     else                col = "#e22718";
     speed_val_label_->setStyleSheet(QStringLiteral("color: %1;").arg(col));
+
+    // auto-zoom 전달
+    if (tile_map_) tile_map_->setSpeedKmh(static_cast<double>(kmh));
+}
+
+void NavScreen::onDistanceChanged(double meters) {
+    if (!eta_title_label_ || !eta_dist_label_) return;
+    if (meters < 0) {
+        // 경로 없음
+        eta_title_label_->setText("NAVIGATION · DEMO CITY");
+        eta_title_label_->setStyleSheet("color: #7e7e7e;");
+        eta_dist_label_->setText("GPS · ACTIVE");
+        eta_dist_label_->setStyleSheet(QString("color: %1;").arg(kOK.name()));
+        eta_dist_label_->setFont(QFont(eta_dist_label_->font().family(), 7));
+    } else {
+        // 경로 있음: 거리 표시
+        eta_title_label_->setText("ROUTE ACTIVE");
+        eta_title_label_->setStyleSheet("color: #1c69d4;");
+        QString distStr = meters >= 1000.0
+            ? QStringLiteral("%1 km").arg(meters / 1000.0, 0, 'f', 1)
+            : QStringLiteral("%1 m").arg(static_cast<int>(meters));
+        eta_dist_label_->setText(distStr);
+        QFont f = eta_dist_label_->font(); f.setPointSize(11);
+        eta_dist_label_->setFont(f);
+        eta_dist_label_->setStyleSheet("color: #ffffff;");
+    }
 }
 
 void NavScreen::resizeEvent(QResizeEvent *e) {
@@ -348,6 +372,10 @@ EntertainmentWindow::EntertainmentWindow(QWidget *parent) : QWidget(parent) {
     nav_screen_ = new NavScreen(right);
     vb->addWidget(nav_screen_, 1);
 
+    // 지도 경계 (MapTileBaker 기본값과 일치)
+    nav_screen_->tileMap()->setWorldBounds(-400.0, 450.0, -200.0, 240.0);
+    nav_screen_->tileMap()->setZoom(2);
+
     // 시계
     connect(&clock_timer_, &QTimer::timeout,
             status_bar_, &StatusBarWidget::updateClock);
@@ -362,4 +390,8 @@ void EntertainmentWindow::setModel(EntertainmentModel *model) {
             nav_screen_->tileMap(), &TileMapWidget::setHeading);
     connect(model_, &EntertainmentModel::speedChanged,
             nav_screen_, &NavScreen::setSpeed);
+
+    // TileMapWidget 경로 거리 → NavScreen 카드 업데이트
+    connect(nav_screen_->tileMap(), &TileMapWidget::distanceToDestChanged,
+            nav_screen_, &NavScreen::onDistanceChanged);
 }
