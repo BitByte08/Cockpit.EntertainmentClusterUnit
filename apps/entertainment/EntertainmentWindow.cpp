@@ -382,6 +382,10 @@ EntertainmentWindow::EntertainmentWindow(QWidget *parent) : QWidget(parent) {
     clock_timer_.start(1000);
 }
 
+bool EntertainmentWindow::loadRoadGraph(const QString &jsonPath) {
+    return nav_screen_->tileMap()->loadRoadGraph(jsonPath);
+}
+
 void EntertainmentWindow::setModel(EntertainmentModel *model) {
     model_ = model;
     connect(model_, &EntertainmentModel::positionChanged,

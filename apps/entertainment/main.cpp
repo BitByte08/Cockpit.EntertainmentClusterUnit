@@ -1,6 +1,8 @@
 #include <QApplication>
 #include <QFont>
 #include <QFontDatabase>
+#include <QFile>
+#include <QCoreApplication>
 #include "EntertainmentWindow.hpp"
 #include "models/EntertainmentModel.hpp"
 #include "SocketCANInterface.hpp"
@@ -47,6 +49,11 @@ int main(int argc, char *argv[]) {
     // 윈도우
     EntertainmentWindow window;
     window.setModel(model);
+
+    // road_graph.json 자동 로드 (있으면 네비 모드, 없으면 위성 모드)
+    QString graphPath = QCoreApplication::applicationDirPath() + "/road_graph.json";
+    if (QFile::exists(graphPath))
+        window.loadRoadGraph(graphPath);
 
     bool kiosk = args.contains("--fullscreen") ||
                  qEnvironmentVariable("ENTERTAINMENT_KIOSK") == "1";

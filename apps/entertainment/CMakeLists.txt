@@ -6,6 +6,8 @@ add_executable(entertainment
     EntertainmentWindow.hpp
     TileMapWidget.cpp
     TileMapWidget.hpp
+    RoadGraph.cpp
+    RoadGraph.hpp
     models/EntertainmentModel.cpp
     models/EntertainmentModel.hpp
 )

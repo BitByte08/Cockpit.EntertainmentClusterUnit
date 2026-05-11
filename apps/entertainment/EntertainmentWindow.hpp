@@ -79,6 +79,7 @@ public:
     ~EntertainmentWindow() override = default;
 
     void setModel(EntertainmentModel *model);
+    bool loadRoadGraph(const QString &jsonPath);
 
 private:
     SideRailWidget  *rail_{nullptr};
