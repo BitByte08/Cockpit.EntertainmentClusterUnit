@@ -1,93 +1,68 @@
-# Car Entertainment Cluster Unit
+# Cockpit Entertainment Cluster Unit
 
-Raspberry Pi 기반 자동차 디지털 클러스터. Qt6 + SocketCAN으로 CAN 버스 데이터를 실시간 렌더링하며, 부팅 시 OTA 자동 업데이트를 지원합니다.
+Raspberry Pi 기반 자동차 콕핏 디스플레이 프로젝트입니다. 이 저장소는 두 개의 Qt6/C++
+앱을 같이 관리하지만, 실제 차량 구성에서는 **서로 다른 Raspberry Pi 두 대**에 각각
+설치해서 실행하는 것을 기준으로 합니다.
 
----
+| 장치 | 앱 | 설치 경로 | 릴리스 바이너리 | systemd 서비스 |
+|------|-----|-----------|-----------------|----------------|
+| Cluster Pi | 계기판 | `/opt/cluster` | `cluster-arm64` | `cluster-kiosk`, `cluster-update` |
+| Entertainment Pi | 내비/엔터테인먼트 | `/opt/entertainment` | `entertainment-arm64` | `entertainment-kiosk`, `entertainment-update` |
 
-## 화면 구성
-
-```
-┌──────────────────────────────────────────────────┐
-│                                                  │
-│   ┌──────────────┐   ┌────────────────────────┐  │
-│   │              │   │  SPEED                 │  │
-│   │   RPM        │   │                        │  │
-│   │   게이지      │   │            87          │  │
-│   │   (아날로그)  │   │           km/h         │  │
-│   │              │   │ ─────────────────────  │  │
-│   │              │   │  FUEL          72%     │  │
-│   │              │   │ ─────────────────────  │  │
-│   └──────────────┘   │  ENGINE TEMP   92°C    │  │
-│                      └────────────────────────┘  │
-└──────────────────────────────────────────────────┘
-```
-
-- **좌측**: RPM 아날로그 게이지 (0 – 8,000 RPM, 애니메이션 바늘)
-- **우측**: 속도 / 연료 / 엔진 온도 텍스트 패널 (임계값 초과 시 색상 경고)
+두 Pi 모두 SocketCAN의 `can0`을 기본 입력으로 사용하며, CAN bitrate는 500 Kbps입니다.
 
 ---
 
 ## 프로젝트 구조
 
-```
-CarEntertainmentClusterUnit/
+```text
+Cockpit.EntertainmentClusterUnit/
 ├── apps/
-│   └── cluster/
-│       ├── models/          # ClusterModel — CAN 프레임 파싱
-│       ├── widgets/         # GaugeWidget — 아날로그 RPM 게이지
-│       ├── UpdateManager    # OTA 업데이트 클라이언트
-│       ├── mainwindow.*
-│       └── main.cpp
-├── core/
-│   └── can_interface/       # CANInterface / SocketCANInterface / StubCANInterface
-├── tests/                   # QTest 유닛 테스트
+│   ├── cluster/              # 계기판 앱
+│   └── entertainment/        # 내비/엔터테인먼트 앱
+├── core/can_interface/       # SocketCAN / Stub CAN 공통 인터페이스
 ├── scripts/
-│   ├── install.sh           # RPi 최초 설치 스크립트
-│   ├── update.sh            # 부팅 시 OTA 업데이트 스크립트
-│   ├── cluster-kiosk.service
-│   └── cluster-update.service
+│   ├── install.sh            # Cluster Pi 최초 설치
+│   ├── update.sh             # Cluster Pi OTA 업데이트
+│   ├── cluster-*.service
+│   ├── entertainment-install.sh
+│   ├── entertainment-update.sh
+│   └── entertainment-*.service
+├── tests/
+├── tools/
 ├── .github/workflows/
-│   └── ci-release.yml       # GitHub Actions CI/CD
-├── CMakeLists.txt
+│   ├── ci.yml
+│   └── release.yml
 └── VERSION
 ```
 
 ---
 
-## CAN 메시지 포맷
-
-| CAN ID | 데이터 | 단위 |
-|--------|--------|------|
-| `0x100` | `[MSB, LSB]` | 속도 (km/h) |
-| `0x200` | `[MSB, LSB]` | RPM |
-| `0x300` | `[byte0]` | 연료 (0 – 100%) |
-| `0x400` | `[byte0]` | 엔진 온도 (°C) |
-
----
-
 ## 하드웨어 요구사항
 
-- Raspberry Pi 4 / 5 (ARM64)
-- [Seengreat RS485 Dual CAN I HAT](https://seengreat.com/wiki/83/rs485-dual-can-i)
-  - MCP2515 × 2 (SPI 연결)
+- Raspberry Pi 4 / 5, 64-bit Raspberry Pi OS
+- 800 x 480 디스플레이
+- Seengreat RS485 Dual CAN I HAT
+  - MCP2515 x 2
   - CAN0: SPI0, CS=BCM8, INT=BCM25
   - CAN1: SPI1, CS=BCM17, INT=BCM24
-  - 로직 전압 슬라이드 스위치 → **3.3V**
-  - DIP 스위치 기본값 → **P11, P6, P0, P5 ON**
+  - 로직 전압 슬라이드 스위치: **3.3V**
+  - DIP 스위치 기본값: **P11, P6, P0, P5 ON**
+
+설치 스크립트는 SPI, MCP2515 overlay, `can-setup.service`, X11 키오스크 자동 시작을
+설정합니다. 각 Pi에는 자기 역할의 설치 스크립트만 실행하세요.
 
 ---
 
-## 빠른 설치 (Raspberry Pi)
+## Raspberry Pi 설치
 
-### 1. 최초 설치
+### Cluster Pi
 
-저장소를 클론하거나 릴리스에서 `install.sh`를 바로 받아 실행합니다.
+릴리스에서 설치:
 
 ```bash
-# 릴리스에서 설치 스크립트 + 바이너리 직접 다운로드
 curl -L https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit/releases/latest/download/install.sh \
   -o install.sh
-
 curl -L https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit/releases/latest/download/cluster-arm64 \
   -o cluster-arm64
 
@@ -95,71 +70,174 @@ sudo bash install.sh ./cluster-arm64
 sudo reboot
 ```
 
-또는 저장소 클론 후 설치:
+저장소를 클론해서 설치:
 
 ```bash
 git clone https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit.git
-cd CarEntertainmentClusterUnit
-sudo bash scripts/install.sh
+cd Cockpit.EntertainmentClusterUnit
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target cluster --parallel
+sudo bash scripts/install.sh build/apps/cluster/cluster
 sudo reboot
 ```
 
-### 2. 바이너리만 수동 업데이트
+### Entertainment Pi
+
+릴리스에서 설치:
+
+```bash
+curl -L https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit/releases/latest/download/entertainment-install.sh \
+  -o entertainment-install.sh
+curl -L https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit/releases/latest/download/entertainment-arm64 \
+  -o entertainment-arm64
+
+sudo bash entertainment-install.sh ./entertainment-arm64
+sudo reboot
+```
+
+저장소를 클론해서 설치:
+
+```bash
+git clone https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit.git
+cd Cockpit.EntertainmentClusterUnit
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target entertainment --parallel
+sudo bash scripts/entertainment-install.sh build/apps/entertainment/entertainment
+sudo reboot
+```
+
+지도 타일과 도로 그래프는 Entertainment Pi에 별도로 복사합니다.
+
+```bash
+scp -r tiles/ pi@<ENTERTAINMENT_PI_IP>:/opt/entertainment/tiles/
+scp road_graph.json pi@<ENTERTAINMENT_PI_IP>:/opt/entertainment/road_graph.json
+```
+
+`road_graph.json`이 없으면 앱은 위성 타일 모드로 실행되고, 파일이 있으면 내비게이션
+경로 모드가 활성화됩니다.
+
+---
+
+## 수동 업데이트
+
+Cluster Pi:
 
 ```bash
 curl -L https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit/releases/latest/download/cluster-arm64 \
   -o /tmp/cluster-arm64
-
 sudo install -m 755 /tmp/cluster-arm64 /opt/cluster/cluster
 sudo systemctl restart cluster-kiosk
 ```
 
-### 3. 현재 설치 버전 확인
+Entertainment Pi:
 
 ```bash
-cat /opt/cluster/VERSION
+curl -L https://github.com/BitByte08/Cockpit.EntertainmentClusterUnit/releases/latest/download/entertainment-arm64 \
+  -o /tmp/entertainment-arm64
+sudo install -m 755 /tmp/entertainment-arm64 /opt/entertainment/entertainment
+sudo systemctl restart entertainment-kiosk
 ```
 
-### 4. OTA 업데이트 수동 실행
+OTA 스크립트 직접 실행:
 
 ```bash
 sudo /opt/cluster/update.sh
-```
-
-### 5. CAN 인터페이스 상태 확인
-
-```bash
-ip link show can0
-ip link show can1
-
-# 수신 테스트
-candump can0
-
-# 송신 테스트 (can1 → can0)
-cansend can1 100#0000
+sudo /opt/entertainment/update.sh
 ```
 
 ---
 
-## 빌드 (개발 환경)
+## CAN 메시지 포맷
 
-### 의존성
+| CAN ID | 이름 | 데이터 | 사용 앱 |
+|--------|------|--------|---------|
+| `0x300` | `SWITCH_STATUS` | `uint16` little-endian bitfield | Cluster |
+| `0x301` | `GEAR_STATUS` | `byte0`: `0=N`, `1..6`, `7=R` | Cluster |
+| `0x400` | `INFO_SPEED_RPM` | `[speed_x10 u16 BE][rpm u16 BE]` | Cluster, Entertainment |
+| `0x401` | `INFO_WARNING` | `uint16` little-endian bitfield | Cluster |
+| `0x500` | `VEHICLE_STATE` | `[speed_x10 u16 BE][rpm u16 BE][gear][flags]` | Cluster, Entertainment |
+| `0x501` | `ENGINE_STATE` | `[coolant C][oil 0..100][fuel 0..100]` | Cluster |
+| `0x600` | `POSITION` | `[x int32 BE x100][z int32 BE x100]` | Entertainment |
+| `0x601` | `HEADING` | `[heading_x10 u16 BE]` | Entertainment |
+
+`0x300` switch bitfield:
+
+| Bit | 의미 |
+|-----|------|
+| 0 | Ignition |
+| 1 | Engine |
+| 3 | High beam |
+| 4 | Hazard |
+| 8 | Turn left |
+| 9 | Turn right |
+
+`0x401` warning bitfield:
+
+| Bit | 의미 |
+|-----|------|
+| 0 | Check engine |
+| 1 | Oil pressure |
+| 4 | Fuel low |
+
+예시:
 
 ```bash
-# Ubuntu / Raspberry Pi OS
-sudo apt-get install -y \
-  qt6-base-dev qt6-tools-dev libqt6network6-dev \
-  cmake ninja-build can-utils
+# speed 100.0 km/h, rpm 3000
+cansend can0 400#03E80BB8
+
+# coolant 95 C, oil 60%, fuel 72%
+cansend can0 501#5F3C48
+
+# x=12.34 m, z=-5.00 m
+cansend can0 600#000004D2FFFFFE0C
 ```
 
-### 빌드
+---
+
+## CAN 상태 확인
+
+```bash
+ip link show can0
+ip -details link show can0
+candump can0
+```
+
+dual CAN HAT에서 `can0`과 `can1`을 물리적으로 연결해 송수신을 확인할 수도 있습니다.
+
+```bash
+candump can0
+cansend can1 400#03E80BB8
+```
+
+---
+
+## 개발 환경
+
+의존성:
+
+```bash
+sudo apt-get install -y \
+  qt6-base-dev qt6-tools-dev cmake ninja-build can-utils
+```
+
+빌드:
 
 ```bash
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 ```
 
-### 테스트 포함 빌드
+실행:
+
+```bash
+CLUSTER_CAN_IF=vcan0 ./build/apps/cluster/cluster
+ENTERTAINMENT_CAN_IF=vcan0 ./build/apps/entertainment/entertainment
+
+CLUSTER_KIOSK=1 ./build/apps/cluster/cluster
+ENTERTAINMENT_KIOSK=1 ./build/apps/entertainment/entertainment
+```
+
+테스트:
 
 ```bash
 cmake -B build -G Ninja -DBUILD_TESTS=ON
@@ -167,77 +245,67 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-### 실행
+통합 테스트는 `vcan0`을 준비한 뒤 실행합니다.
 
 ```bash
-# 일반 창 모드
-./build/apps/cluster/cluster
-
-# 키오스크 풀스크린
-./build/apps/cluster/cluster --fullscreen
-
-# 환경변수로도 가능
-CLUSTER_KIOSK=1 ./build/apps/cluster/cluster
+sudo modprobe vcan
+sudo ip link add dev vcan0 type vcan
+sudo ip link set up vcan0
+tests/integration/run_test.sh
 ```
 
 ---
 
-## CI/CD
+## 릴리스
 
-GitHub Actions (`.github/workflows/ci-release.yml`)
+`v*` 태그를 푸시하면 GitHub Actions가 ARM64에서 빌드하고 다음 릴리스 에셋을 업로드합니다.
 
-| 트리거 | 동작 |
-|--------|------|
-| PR / `main` 푸시 | ARM64 빌드 + 유닛 테스트 |
-| `v*` 태그 푸시 | 릴리스 빌드 + GitHub Release 자동 생성 |
-
-### 릴리스 태그 방법
+- `cluster-arm64`
+- `entertainment-arm64`
+- `install.sh`
+- `update.sh`
+- `cluster-kiosk.service`
+- `cluster-update.service`
+- `entertainment-install.sh`
+- `entertainment-update.sh`
+- `entertainment-kiosk.service`
+- `entertainment-update.service`
+- `VERSION`
+- `build-info.txt`
 
 ```bash
-# VERSION 파일 수정 후
 echo "1.2.0" > VERSION
 git add VERSION
-git commit -m "chore :: bump version to 1.2.0"
+git commit -m "chore: bump version to 1.2.0"
 git tag v1.2.0
 git push origin main --tags
-```
-
-태그가 푸시되면 Actions가 자동으로 `cluster-arm64` 바이너리를 빌드해 GitHub Release에 업로드합니다. 이후 RPi는 다음 부팅 시 자동으로 업데이트됩니다.
-
----
-
-## OTA 업데이트 흐름
-
-```
-RPi 부팅
-  │
-  ├─ [1] can-setup.service
-  │       can0 / can1 → 500Kbps UP
-  │
-  ├─ [2] cluster-update.service  (oneshot)
-  │       /opt/cluster/update.sh 실행
-  │       └─ GitHub API 조회 → 신규 버전 있으면 다운로드 & 교체
-  │
-  └─ [3] cluster-kiosk.service
-          Qt 앱 풀스크린 실행
-          └─ 앱 내부에서도 5초 후 버전 체크
-             신규 버전 감지 시 자동 다운로드 → 재시작
 ```
 
 ---
 
 ## 서비스 관리
 
+Cluster Pi:
+
 ```bash
-# 상태 확인
 sudo systemctl status cluster-kiosk
 sudo systemctl status cluster-update
-sudo systemctl status can-setup
-
-# 로그 확인
 journalctl -u cluster-kiosk -f
-journalctl -u cluster-update --no-pager
-
-# 수동 재시작
 sudo systemctl restart cluster-kiosk
+```
+
+Entertainment Pi:
+
+```bash
+sudo systemctl status entertainment-kiosk
+sudo systemctl status entertainment-update
+journalctl -u entertainment-kiosk -f
+sudo systemctl restart entertainment-kiosk
+```
+
+공통 CAN 서비스:
+
+```bash
+sudo systemctl status can-setup
+sudo systemctl restart can-setup
 ```
