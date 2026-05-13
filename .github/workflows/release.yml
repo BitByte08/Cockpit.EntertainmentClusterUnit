@@ -64,10 +64,12 @@ jobs:
           cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build build --parallel
 
-      - name: Prepare artifact
+      - name: Prepare artifacts
         run: |
           cp build/apps/cluster/cluster cluster-arm64
+          cp build/apps/entertainment/entertainment entertainment-arm64
           chmod +x cluster-arm64
+          chmod +x entertainment-arm64
           echo "version=${{ steps.version.outputs.version }}" > build-info.txt
           echo "commit=${{ github.sha }}"                    >> build-info.txt
           echo "built=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"     >> build-info.txt
@@ -77,17 +79,12 @@ jobs:
         with:
           name: "v${{ steps.version.outputs.version }}"
           body: |
-            ## Car Cluster Unit v${{ steps.version.outputs.version }}
+            ## Cockpit Entertainment Cluster Unit v${{ steps.version.outputs.version }}
 
-            ### 설치 방법 (Raspberry Pi)
-            ```bash
-            curl -L https://github.com/${{ github.repository }}/releases/latest/download/cluster-arm64 \
-              -o /opt/cluster/cluster
-            chmod +x /opt/cluster/cluster
-            sudo systemctl restart cluster-kiosk
-            ```
+            This release contains independent Raspberry Pi builds for the cluster display
+            and the entertainment/navigation display. Install one app per Pi.
 
-            ### 최초 설치
+            ### Cluster Pi
             ```bash
             curl -L https://github.com/${{ github.repository }}/releases/latest/download/install.sh \
               -o install.sh
@@ -96,13 +93,28 @@ jobs:
             sudo bash install.sh ./cluster-arm64
             sudo reboot
             ```
+
+            ### Entertainment Pi
+            ```bash
+            curl -L https://github.com/${{ github.repository }}/releases/latest/download/entertainment-install.sh \
+              -o entertainment-install.sh
+            curl -L https://github.com/${{ github.repository }}/releases/latest/download/entertainment-arm64 \
+              -o entertainment-arm64
+            sudo bash entertainment-install.sh ./entertainment-arm64
+            sudo reboot
+            ```
           files: |
             cluster-arm64
+            entertainment-arm64
             build-info.txt
             VERSION
             scripts/install.sh
             scripts/update.sh
             scripts/cluster-kiosk.service
             scripts/cluster-update.service
+            scripts/entertainment-install.sh
+            scripts/entertainment-update.sh
+            scripts/entertainment-kiosk.service
+            scripts/entertainment-update.service
           generate_release_notes: true
           make_latest: true
