@@ -1,80 +1,149 @@
 #!/bin/bash
 
-# CAN 테스트 스크립트
-# ClusterModel에서 정의한 CAN ID에 맞춰 데이터 전송
+# CAN smoke test for the current Cluster/Entertainment protocol.
+# Usage: ./test_can.sh [can-interface]
 
-echo "=== CAN 테스트 시작 ==="
-echo "vcan0으로 테스트 데이터를 전송합니다."
+set -euo pipefail
+
+CAN_IF="${1:-vcan0}"
+
+echo "=== CAN smoke test ==="
+echo "Interface: ${CAN_IF}"
 echo ""
 
-# 0x100: 속도 (2바이트, 빅엔디안)
-# 예: 100 km/h = 0x0064
-echo "속도 설정: 0 -> 120 km/h"
+if ! ip link show "$CAN_IF" >/dev/null 2>&1; then
+    echo "[ERROR] ${CAN_IF} not found"
+    echo "For local testing:"
+    echo "  sudo modprobe vcan"
+    echo "  sudo ip link add dev vcan0 type vcan"
+    echo "  sudo ip link set up vcan0"
+    exit 1
+fi
+
+if ! command -v cansend >/dev/null 2>&1; then
+    echo "[ERROR] cansend not found. Install can-utils."
+    exit 1
+fi
+
+send_switch() {
+    local flags=$1
+    local lo=$(( flags & 0xFF ))
+    local hi=$(( (flags >> 8) & 0xFF ))
+    local frame
+    printf -v frame "%02X%02X" "$lo" "$hi"
+    cansend "$CAN_IF" "300#$frame"
+}
+
+send_gear() {
+    local gear=$1
+    local frame
+    printf -v frame "%02X" "$gear"
+    cansend "$CAN_IF" "301#$frame"
+}
+
+send_speed_rpm() {
+    local speed_x10=$(( $1 * 10 ))
+    local rpm=$2
+    local frame
+    printf -v frame "%04X%04X" "$speed_x10" "$rpm"
+    cansend "$CAN_IF" "400#$frame"
+}
+
+send_warning() {
+    local flags=$1
+    local lo=$(( flags & 0xFF ))
+    local hi=$(( (flags >> 8) & 0xFF ))
+    local frame
+    printf -v frame "%02X%02X" "$lo" "$hi"
+    cansend "$CAN_IF" "401#$frame"
+}
+
+send_vehicle_state() {
+    local speed_x10=$(( $1 * 10 ))
+    local rpm=$2
+    local gear=$3
+    local flags=$4
+    local frame
+    printf -v frame "%04X%04X%02X%02X" "$speed_x10" "$rpm" "$gear" "$flags"
+    cansend "$CAN_IF" "500#$frame"
+}
+
+send_engine_state() {
+    local coolant=$1
+    local oil=$2
+    local fuel=$3
+    local frame
+    printf -v frame "%02X%02X%02X" "$coolant" "$oil" "$fuel"
+    cansend "$CAN_IF" "501#$frame"
+}
+
+send_position() {
+    local xi=$(( $1 * 100 ))
+    local zi=$(( $2 * 100 ))
+    local xhex zhex
+    printf -v xhex "%08X" $(( xi & 0xFFFFFFFF ))
+    printf -v zhex "%08X" $(( zi & 0xFFFFFFFF ))
+    cansend "$CAN_IF" "600#${xhex}${zhex}"
+}
+
+send_heading() {
+    local heading_x10=$(( $1 * 10 ))
+    local frame
+    printf -v frame "%04X" "$heading_x10"
+    cansend "$CAN_IF" "601#$frame"
+}
+
+echo "Ignition + engine ON"
+send_switch 0x03
+send_gear 0
+send_engine_state 88 60 80
+send_speed_rpm 0 900
+send_vehicle_state 0 900 0 0
+send_position 0 0
+send_heading 0
+sleep 0.5
+
+echo "Accelerating 0 -> 120 km/h"
 for speed in {0..120..10}; do
-    hex=$(printf "%04X" $speed)
-    echo "  속도: $speed km/h (0x$hex)"
-    cansend vcan0 100#$hex
-    sleep 0.1
+    rpm=$(( 900 + speed * 45 ))
+    gear=1
+    if   (( speed >= 100 )); then gear=6
+    elif (( speed >= 80 ));  then gear=5
+    elif (( speed >= 60 ));  then gear=4
+    elif (( speed >= 40 ));  then gear=3
+    elif (( speed >= 20 ));  then gear=2
+    fi
+
+    send_speed_rpm "$speed" "$rpm"
+    send_vehicle_state "$speed" "$rpm" "$gear" 0
+    send_engine_state 90 60 $(( 80 - speed / 10 ))
+    send_position 0 "$speed"
+    send_heading 0
+    printf "  speed=%3d km/h rpm=%4d gear=%d\n" "$speed" "$rpm" "$gear"
+    sleep 0.15
 done
 
-echo ""
-echo "RPM 설정: 0 -> 6000"
-# 0x200: RPM (2바이트, 빅엔디안)
-# 예: 3000 RPM = 0x0BB8
-for rpm in {0..6000..500}; do
-    hex=$(printf "%04X" $rpm)
-    echo "  RPM: $rpm (0x$hex)"
-    cansend vcan0 200#$hex
-    sleep 0.1
-done
+echo "Turn right + ABS/TCS active"
+send_switch $(( 0x03 | 0x200 ))
+send_vehicle_state 80 3600 5 0x03
+sleep 1
+
+echo "Warning: check engine + fuel low"
+send_warning 0x11
+send_engine_state 103 45 8
+sleep 1
+
+echo "Clear warnings and stop"
+send_warning 0
+send_switch 0x01
+send_speed_rpm 0 800
+send_vehicle_state 0 800 0 0
+send_gear 0
 
 echo ""
-echo "연료 레벨: 100% -> 20%"
-# 0x300: 연료 레벨 (1바이트, 0-100%)
-for fuel in {100..20..-10}; do
-    hex=$(printf "%02X" $fuel)
-    echo "  연료: $fuel% (0x$hex)"
-    cansend vcan0 300#$hex
-    sleep 0.2
-done
-
+echo "Individual examples:"
+echo "  cansend ${CAN_IF} 400#03E80BB8        # 100.0 km/h, 3000 rpm"
+echo "  cansend ${CAN_IF} 501#5F3C48          # coolant 95 C, oil 60%, fuel 72%"
+echo "  cansend ${CAN_IF} 600#000004D2FFFFFE0C # x=12.34 m, z=-5.00 m"
 echo ""
-echo "온도 설정: 90°C -> 110°C"
-# 0x400: 온도 (1바이트, 섭씨)
-for temp in {90..110..5}; do
-    hex=$(printf "%02X" $temp)
-    echo "  온도: $temp°C (0x$hex)"
-    cansend vcan0 400#$hex
-    sleep 0.2
-done
-
-echo ""
-echo "=== 동시 테스트: 모든 값 변경 ==="
-for i in {1..20}; do
-    speed=$((RANDOM % 240))
-    rpm=$((RANDOM % 8000))
-    fuel=$((RANDOM % 100))
-    temp=$((70 + RANDOM % 40))
-    
-    speed_hex=$(printf "%04X" $speed)
-    rpm_hex=$(printf "%04X" $rpm)
-    fuel_hex=$(printf "%02X" $fuel)
-    temp_hex=$(printf "%02X" $temp)
-    
-    cansend vcan0 100#$speed_hex
-    cansend vcan0 200#$rpm_hex
-    cansend vcan0 300#$fuel_hex
-    cansend vcan0 400#$temp_hex
-    
-    echo "  [$i/20] 속도: $speed km/h, RPM: $rpm, 연료: $fuel%, 온도: $temp°C"
-    sleep 0.3
-done
-
-echo ""
-echo "=== 테스트 완료 ==="
-echo ""
-echo "개별 명령어 사용법:"
-echo "  속도 100km/h:  cansend vcan0 100#0064"
-echo "  RPM 3000:      cansend vcan0 200#0BB8"
-echo "  연료 50%:      cansend vcan0 300#32"
-echo "  온도 95°C:     cansend vcan0 400#5F"
+echo "=== Done ==="
