@@ -93,7 +93,7 @@ send_speed_rpm() {
 }
 
 # vehicle_state [speed_kph] [rpm] [gear_byte]
-#   gear_byte: 0=N, 1-6=drive, 255=R
+#   gear_byte: 0=N, 1-6=drive, 7=R
 send_vehicle_state() {
     local speed_x10
     speed_x10=$(( $1 * 10 ))
@@ -119,7 +119,7 @@ send_switch() {
     cansend "$CAN_IF" "300#$frame"
 }
 
-# gear [0-6 | 255=R]
+# gear [0-6 | 7=R]
 send_gear() {
     printf -v frame "%02X" "$1"
     cansend "$CAN_IF" "301#$frame"
