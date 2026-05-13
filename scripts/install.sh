@@ -1,10 +1,10 @@
 #!/bin/bash
 # ============================================================
-# Car Cluster Unit — Raspberry Pi 설치 스크립트
+# Cluster Unit — Raspberry Pi 설치 스크립트
 # Seengreat RS485 Dual CAN I HAT 기반
 # 참고: https://seengreat.com/wiki/83/rs485-dual-can-i
 # ============================================================
-set -uo pipefail
+set -euo pipefail
 
 INSTALL_DIR="/opt/cluster"
 BINARY_SRC="${1:-./cluster-arm64}"
@@ -32,13 +32,25 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 download_release() {
     local filename="$1"
     local dest="$2"
+    local base
+    base="$(basename "$filename")"
+    local candidates=("$filename" "$base" "scripts/$base")
+
     for dir in "$SCRIPT_DIR" "$(dirname "$BINARY_SRC")"; do
-        if [[ -f "${dir}/${filename}" ]]; then
-            cp "${dir}/${filename}" "$dest"
-            return 0
-        fi
+        for candidate in "${candidates[@]}"; do
+            if [[ -f "${dir}/${candidate}" ]]; then
+                cp "${dir}/${candidate}" "$dest"
+                return 0
+            fi
+        done
     done
-    curl -sL "${RELEASE_BASE}/${filename}" -o "$dest" && return 0
+
+    local tmp="${dest}.download"
+    if curl -fsSL "${RELEASE_BASE}/${base}" -o "$tmp"; then
+        mv "$tmp" "$dest"
+        return 0
+    fi
+    rm -f "$tmp"
     return 1
 }
 
@@ -56,7 +68,9 @@ apt-get install -y --no-install-recommends \
     libqt6core6 \
     xserver-xorg-core \
     xinit \
+    x11-utils \
     x11-xserver-utils \
+    fonts-noto-cjk \
     unclutter \
     openbox
 info "패키지 설치 완료"
@@ -150,7 +164,7 @@ info "VERSION: $CURRENT_VERSION"
 section "6/7 systemd 서비스 등록"
 
 # cluster-update.service 다운로드 또는 인라인 생성
-if ! download_release scripts/cluster-update.service /etc/systemd/system/cluster-update.service; then
+if ! download_release cluster-update.service /etc/systemd/system/cluster-update.service; then
     cat > /etc/systemd/system/cluster-update.service << EOF
 [Unit]
 Description=Car Cluster OTA Update Check
@@ -173,7 +187,7 @@ info "cluster-update.service 설치 완료"
 
 # cluster-kiosk.service 다운로드 + 사용자 치환, 또는 인라인 생성
 KIOSK_TMP=$(mktemp)
-if download_release scripts/cluster-kiosk.service "$KIOSK_TMP"; then
+if download_release cluster-kiosk.service "$KIOSK_TMP"; then
     sed "s/User=pi/User=${PI_USER}/g; s/Group=pi/Group=${PI_USER}/g; s|/home/pi/|/home/${PI_USER}/|g" \
         "$KIOSK_TMP" > /etc/systemd/system/cluster-kiosk.service
     rm -f "$KIOSK_TMP"
@@ -196,6 +210,7 @@ Environment=QT_QPA_PLATFORM=xcb
 Environment=QT_QPA_PLATFORMTHEME=
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=CLUSTER_KIOSK=1
+Environment=CLUSTER_CAN_IF=can0
 ExecStartPre=/bin/bash -c "until xdpyinfo -display :0 >/dev/null 2>&1; do sleep 0.5; done"
 ExecStart=${INSTALL_DIR}/cluster
 Restart=always
@@ -218,7 +233,7 @@ xsetroot -cursor_name none &
 unclutter -idle 0 -root &
 openbox &
 while true; do
-    CLUSTER_KIOSK=1 /opt/cluster/cluster
+    CLUSTER_KIOSK=1 CLUSTER_CAN_IF=can0 /opt/cluster/cluster
     sleep 1
 done
 XINITEOF

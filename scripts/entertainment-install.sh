@@ -36,10 +36,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 download_release() {
     local filename="$1" dest="$2"
+    local base
+    base="$(basename "$filename")"
+    local candidates=("$filename" "$base" "scripts/$base")
+
     for dir in "$SCRIPT_DIR" "$(dirname "$BINARY_SRC")"; do
-        [[ -f "${dir}/${filename}" ]] && { cp "${dir}/${filename}" "$dest"; return 0; }
+        for candidate in "${candidates[@]}"; do
+            [[ -f "${dir}/${candidate}" ]] && { cp "${dir}/${candidate}" "$dest"; return 0; }
+        done
     done
-    curl -sL "${RELEASE_BASE}/${filename}" -o "$dest" && return 0
+
+    local tmp="${dest}.download"
+    if curl -fsSL "${RELEASE_BASE}/${base}" -o "$tmp"; then
+        mv "$tmp" "$dest"
+        return 0
+    fi
+    rm -f "$tmp"
     return 1
 }
 
@@ -57,7 +69,9 @@ apt-get install -y --no-install-recommends \
     libqt6gui6 \
     xserver-xorg-core \
     xinit \
+    x11-utils \
     x11-xserver-utils \
+    fonts-noto-cjk \
     unclutter \
     openbox
 info "패키지 설치 완료"
@@ -130,7 +144,7 @@ else
 fi
 
 # update.sh
-if download_release scripts/entertainment-update.sh "${INSTALL_DIR}/update.sh"; then
+if download_release entertainment-update.sh "${INSTALL_DIR}/update.sh"; then
     chmod +x "${INSTALL_DIR}/update.sh"
     info "update.sh 설치 완료"
 else
@@ -159,7 +173,7 @@ fi
 section "6/7 systemd 서비스 등록"
 
 # entertainment-update.service
-if ! download_release scripts/entertainment-update.service \
+if ! download_release entertainment-update.service \
         /etc/systemd/system/entertainment-update.service; then
     cat > /etc/systemd/system/entertainment-update.service << EOF
 [Unit]
@@ -183,7 +197,7 @@ info "entertainment-update.service 설치 완료"
 
 # entertainment-kiosk.service (사용자 치환)
 KIOSK_TMP=$(mktemp)
-if download_release scripts/entertainment-kiosk.service "$KIOSK_TMP"; then
+if download_release entertainment-kiosk.service "$KIOSK_TMP"; then
     sed "s/User=pi/User=${PI_USER}/g; s/Group=pi/Group=${PI_USER}/g; \
          s|/home/pi/|/home/${PI_USER}/|g" \
         "$KIOSK_TMP" > /etc/systemd/system/entertainment-kiosk.service
