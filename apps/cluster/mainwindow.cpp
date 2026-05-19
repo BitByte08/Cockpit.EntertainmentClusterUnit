@@ -490,7 +490,8 @@ void MainWindow::onGearChanged(int gear) {
     if (gear == 0) {
         letter = "N"; desc = "NEUTRAL";
         colorHex = kFg1.name();                  // white
-    } else if (gear == 7) {
+    } else if (gear == 255 || gear == -1 || gear == 7) {
+        // 0xFF (TransmissionShifterUnit/VehicleBroadcast 포맷: byte cast of -1 = 255)
         letter = "R"; desc = "REVERSE";
         colorHex = kMRed.name();                 // M red
     } else {

@@ -114,21 +114,13 @@ void UpdateManager::onDownloadFinished(QNetworkReply *reply) {
     f.write(reply->readAll());
     f.close();
 
-    // update.sh 스크립트가 설치되어 있으면 위임, 아니면 직접 교체
-    if (QFile::exists(kUpdateScript)) {
-        // update.sh는 부팅 시 OTA 담당 — 앱에서는 재시작만 트리거
+    // 직접 교체 (앱 재시작은 systemd를 거치지 않으므로 여기서 설치해야 함)
+    QStringList args = { "cp", tmpPath, "/opt/cluster/cluster" };
+    int ret = QProcess::execute("sudo", args);
+    if (ret == 0) {
         emit updateReady();
     } else {
-        // 직접 교체 시도 (sudo 필요)
-        QStringList args = {
-            "cp", tmpPath, "/opt/cluster/cluster"
-        };
-        int ret = QProcess::execute("sudo", args);
-        if (ret == 0) {
-            emit updateReady();
-        } else {
-            emit updateError("바이너리 교체 실패 (sudo 권한 확인)");
-        }
+        emit updateError("바이너리 교체 실패 (sudo 권한 확인)");
     }
 }
 
