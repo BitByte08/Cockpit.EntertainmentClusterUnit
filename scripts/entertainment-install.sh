@@ -160,13 +160,23 @@ else
 fi
 info "VERSION: $CURRENT_VERSION"
 
-# 타일 디렉토리 안내
+# 맵 타일 설치 (map-assets.tar.gz)
 if [[ -z "$(ls -A "$TILES_DIR" 2>/dev/null)" ]]; then
-    warn "타일 없음: Unity에서 베이크 후 ${TILES_DIR}/ 에 복사하세요"
-    warn "  Unity: CarSim → Bake Map Tiles → Assets/StreamingAssets/tiles/"
-    warn "  복사:  scp -r tiles/ pi@<IP>:${TILES_DIR}/"
+    info "맵 타일 다운로드 중..."
+    MAP_PKG_TMP="${INSTALL_DIR}/map-assets.tar.gz"
+    if download_release map-assets.tar.gz "$MAP_PKG_TMP"; then
+        tar -xzf "$MAP_PKG_TMP" -C "$INSTALL_DIR"
+        rm -f "$MAP_PKG_TMP"
+        TILE_COUNT=$(find "$TILES_DIR" -name "*.png" | wc -l)
+        info "타일 설치 완료: ${TILE_COUNT}개 → $TILES_DIR"
+    else
+        warn "map-assets.tar.gz 다운로드 실패 — 수동으로 복사하세요"
+        warn "  scp map-assets.tar.gz pi@<IP>:${INSTALL_DIR}/"
+        warn "  ssh pi@<IP> 'sudo tar -xzf ${INSTALL_DIR}/map-assets.tar.gz -C ${INSTALL_DIR}/'"
+    fi
 else
-    info "타일 디렉토리 확인됨: $TILES_DIR"
+    TILE_COUNT=$(find "$TILES_DIR" -name "*.png" | wc -l)
+    info "타일 이미 설치됨: ${TILE_COUNT}개"
 fi
 
 # ── 6. systemd 서비스 등록 ───────────────────────────────────────────────────

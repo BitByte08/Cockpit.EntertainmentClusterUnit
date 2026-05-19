@@ -104,7 +104,7 @@ info "타일 수: $TILE_COUNT"
 # ── 1. 타일 복사 ────────────────────────────────────────────────────────────────
 step "1/4 타일 복사"
 mkdir -p "$MAP_ASSETS_DIR/tiles"
-rsync -a --delete --info=progress2 "$TILE_SRC/" "$MAP_ASSETS_DIR/tiles/"
+rsync -a --delete --info=progress2 --exclude='*.meta' "$TILE_SRC/" "$MAP_ASSETS_DIR/tiles/"
 info "복사 완료: $MAP_ASSETS_DIR/tiles/"
 
 # ── 2. road_graph.json 생성 ─────────────────────────────────────────────────────
@@ -113,8 +113,16 @@ if [[ "$DO_GRAPH" == true ]]; then
     if [[ -f "$ROAD_MASK" ]]; then
         # Python 의존성 확인
         if ! python3 -c "import cv2, skimage, scipy" 2>/dev/null; then
-            warn "Python 패키지 없음 — 설치 중..."
-            pip3 install opencv-python scikit-image scipy --quiet
+            warn "Python 패키지 없음 — 설치 시도 중..."
+            if command -v pacman &>/dev/null; then
+                sudo pacman -S --noconfirm python-opencv python-scikit-image python-scipy
+            elif command -v pip3 &>/dev/null; then
+                pip3 install opencv-python scikit-image scipy
+            elif python3 -m pip &>/dev/null; then
+                python3 -m pip install opencv-python scikit-image scipy
+            else
+                error "pip / pacman 없음\n  sudo pacman -S python-opencv python-scikit-image python-scipy"
+            fi
         fi
         python3 "$SCRIPT_DIR/extract_road_graph.py" \
             --mask  "$ROAD_MASK" \

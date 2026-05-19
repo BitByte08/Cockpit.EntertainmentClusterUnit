@@ -1,3 +1,9 @@
 build
 .contexty
 *.log
+
+# 맵 타일 PNG (대용량 — GitHub Releases의 map-assets.tar.gz로 배포)
+assets/map/tiles/
+
+# 생성된 패키지
+map-assets.tar.gz
