@@ -239,6 +239,7 @@ void NavScreen::buildSpeedLimit() {
     QFont f; f.setPointSize(14); f.setBold(true);
     lbl->setFont(f);
     lbl->setStyleSheet("color: #000000; border: none; background: transparent;");
+    speed_limit_->hide();   // CAN 데이터 없음 — 실제 제한속도 수신 시 show() 연결
 }
 
 void NavScreen::buildZoomCtrl() {

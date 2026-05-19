@@ -197,8 +197,9 @@ void TileMapWidget::paintSatellite(QPainter &p, int W, int H,
     for (int ty = tyMin; ty <= tyMax; ty++) {
         for (int tx = txMin; tx <= txMax; tx++) {
             if (tx < 0 || ty < 0 || tx >= tileCount || ty >= tileCount) continue;
-            p.drawPixmap(originX + (tx - txMin) * kTileSize,
-                         originY + (ty - tyMin) * kTileSize,
+            p.drawPixmap(QRect(originX + (tx - txMin) * kTileSize,
+                              originY + (ty - tyMin) * kTileSize,
+                              kTileSize, kTileSize),
                          loadTile(zoom_, tx, ty));
         }
     }
