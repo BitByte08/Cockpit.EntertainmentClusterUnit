@@ -624,4 +624,7 @@ void EntertainmentWindow::setModel(EntertainmentModel *model) {
 
     // 차량 정보 ↔ 모델 연결
     vehicle_info_->setModel(model_);
+
+    // 내비 방향 → 클러스터 브로드캐스트 (추후 0x700)
+    // TODO: maneuver CAN broadcast
 }

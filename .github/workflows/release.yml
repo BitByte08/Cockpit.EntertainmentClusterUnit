@@ -55,9 +55,13 @@ jobs:
             cmake \
             ninja-build
 
-      - name: Read VERSION
+      - name: Sync VERSION from tag
         id: version
-        run: echo "version=$(cat VERSION | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+        run: |
+          TAG="${{ github.ref_name }}"   # e.g. v0.0.7
+          VER="${TAG#v}"                 # strip leading 'v' → 0.0.7
+          echo "$VER" > VERSION
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
 
       - name: Build release binary
         run: |

@@ -30,14 +30,13 @@ private:
     uint16_t turn_flags_{0};
     int      rpm_{0};
 
-    QPushButton *btn_start_{nullptr};      // 이그니션+시동 통합 버튼
-    QPushButton *btn_headlight_{nullptr};
-    QPushButton *btn_highbeam_{nullptr};
-    QPushButton *btn_hazard_{nullptr};
-    QPushButton *btn_wiper_{nullptr};    // OFF → SLOW → FAST → OFF 순환
+    QPushButton *btn_start_{nullptr};      // 이그니션+시동 통합
+    QPushButton *btn_lights_{nullptr};     // OFF→LOW→HIGH→OFF 순환
+    QPushButton *btn_wiper_{nullptr};      // OFF→SLOW→FAST→OFF 순환
+    QPushButton *btn_turn_left_{nullptr};  // 좌 방향지시등 (버튼 → 토글)
+    QPushButton *btn_hazard_{nullptr};     // 비상등
+    QPushButton *btn_turn_right_{nullptr}; // 우 방향지시등 (버튼 → 토글)
     QPushButton *btn_horn_{nullptr};
-    QLabel      *lbl_turn_left_{nullptr};
-    QLabel      *lbl_turn_right_{nullptr};
 
     void buildUI();
     void toggleBit(uint16_t mask);

@@ -34,6 +34,15 @@ public:
     int      coolant()     const { return coolant_; }
     int      oilPct()      const { return oil_pct_; }
     int      fuelPct()     const { return fuel_pct_; }
+    // 0x502 Driving Dynamics
+    int      transmittedTorque() const { return torque_; }
+    double   lateralG()          const { return lat_g_; }
+    double   longitudinalG()     const { return lon_g_; }
+    // 0x503 ADAS Status
+    bool     absActive()         const { return abs_active_; }
+    bool     tcsActive()         const { return tcs_active_; }
+    uint8_t  wheelLockBits()     const { return wheel_lock_; } // bit0=FL,1=FR,2=RL,3=RR
+
     uint16_t switchFlags() const { return sw_flags_; }
     uint16_t turnFlags()   const { return turn_flags_; }
 
@@ -49,6 +58,8 @@ signals:
     void rpmChanged(int rpm);
     void gearChanged(int gear);
     void engineStateChanged(int coolant, int oilPct, int fuelPct);
+    void drivingDynamicsChanged(int torque, double latG, double lonG);
+    void adasStatusChanged(bool absActive, bool tcsActive, uint8_t wheelLock);
     void switchFlagsChanged(uint16_t flags);   // 0x300 수신/송신 시
     void turnFlagsChanged(uint16_t flags);     // 0x101 수신 시
 
@@ -67,6 +78,12 @@ private:
     int      coolant_{0};
     int      oil_pct_{0};
     int      fuel_pct_{0};
+    int      torque_{0};
+    double   lat_g_{0.0};
+    double   lon_g_{0.0};
+    bool     abs_active_{false};
+    bool     tcs_active_{false};
+    uint8_t  wheel_lock_{0};
     uint16_t sw_flags_{0};
     uint16_t turn_flags_{0};
 };

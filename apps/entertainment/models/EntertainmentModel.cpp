@@ -104,6 +104,30 @@ void EntertainmentModel::onFrameReceived(const can_frame &frame) {
         break;
     }
 
+    // ── 0x502 DRIVING_DYNAMICS: [torque i16 BE][latG×100 i16 BE][lonG×100 i16 BE] ──
+    case 0x502: {
+        if (frame.can_dlc < 6) break;
+        auto be16s = [&](int off) -> int16_t {
+            return static_cast<int16_t>(
+                (static_cast<uint16_t>(frame.data[off]) << 8) | frame.data[off+1]);
+        };
+        torque_ = be16s(0);
+        lat_g_  = be16s(2) / 100.0;
+        lon_g_  = be16s(4) / 100.0;
+        emit drivingDynamicsChanged(torque_, lat_g_, lon_g_);
+        break;
+    }
+
+    // ── 0x503 ADAS_STATUS: [flags][wheelLock] ───────────────────────────────
+    case 0x503: {
+        if (frame.can_dlc < 2) break;
+        abs_active_  = frame.data[0] & 0x01;
+        tcs_active_  = frame.data[0] & 0x02;
+        wheel_lock_  = frame.data[1];
+        emit adasStatusChanged(abs_active_, tcs_active_, wheel_lock_);
+        break;
+    }
+
     // ── 0x601 HEADING: [heading uint16 BE ×10] ──────────────────────────────
     case 0x601: {
         if (frame.can_dlc < 2) break;

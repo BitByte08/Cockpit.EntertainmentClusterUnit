@@ -7,8 +7,10 @@
 
 class EntertainmentModel;
 
-/// 차량 텔레메트리 페이지 (페이지 2)
-/// CAN 수신 데이터: 속도·RPM (0x400), 기어 (0x500), 수온·유압·연료 (0x501)
+/// 차량 주행 정보 페이지 (페이지 2)
+/// - 클러스터에 없는 데이터만 표시
+/// - 0x502: 전달 토크, 횡G, 종G
+/// - 0x503: ABS/TCS 상태, 휠락 FL/FR/RL/RR
 class VehicleInfoWidget : public QWidget {
     Q_OBJECT
 public:
@@ -16,10 +18,9 @@ public:
     void setModel(EntertainmentModel *model);
 
 public slots:
-    void onSpeedChanged(int kmh);
-    void onRpmChanged(int rpm);
-    void onGearChanged(int gear);
-    void onEngineStateChanged(int coolant, int oilPct, int fuelPct);
+    void onDrivingDynamicsChanged(int torque, double latG, double lonG);
+    void onAdasStatusChanged(bool absActive, bool tcsActive, uint8_t wheelLock);
+    void onRpmChanged(int rpm);   // 엔진 실행 상태 판단용
 
 protected:
     void paintEvent(QPaintEvent *) override;
@@ -27,30 +28,40 @@ protected:
 private:
     EntertainmentModel *model_{nullptr};
 
-    // 수치 레이블
-    QLabel *lbl_speed_val_{nullptr};
-    QLabel *lbl_rpm_val_{nullptr};
-    QLabel *lbl_gear_val_{nullptr};
-    QLabel *lbl_fuel_val_{nullptr};
-    QLabel *lbl_coolant_val_{nullptr};
-    QLabel *lbl_oil_val_{nullptr};
+    // 토크 / G-force 레이블
+    QLabel *lbl_torque_{nullptr};
+    QLabel *lbl_lat_g_{nullptr};
+    QLabel *lbl_lon_g_{nullptr};
 
-    // 연료·수온 게이지 바 (QWidget, width를 비율로 변경)
-    QWidget *bar_fuel_{nullptr};
-    QWidget *bar_coolant_{nullptr};
+    // ADAS 상태 레이블
+    QLabel *lbl_abs_{nullptr};
+    QLabel *lbl_tcs_{nullptr};
 
-    int speed_{0};
-    int rpm_{0};
-    int gear_{0};
-    int fuel_pct_{0};
-    int coolant_{0};
-    int oil_pct_{0};
+    // 휠락 인디케이터 (FL FR RL RR)
+    QWidget *ind_fl_{nullptr};
+    QWidget *ind_fr_{nullptr};
+    QWidget *ind_rl_{nullptr};
+    QWidget *ind_rr_{nullptr};
+
+    // G-force 바
+    QWidget *bar_lat_pos_{nullptr};   // 우측 횡G 바
+    QWidget *bar_lat_neg_{nullptr};   // 좌측 횡G 바
+    QWidget *bar_lon_pos_{nullptr};   // 가속 종G 바
+    QWidget *bar_lon_neg_{nullptr};   // 감속 종G 바
+    QWidget *track_lat_{nullptr};
+    QWidget *track_lon_{nullptr};
+
+    int     rpm_{0};
+    int     torque_{0};
+    double  lat_g_{0.0};
+    double  lon_g_{0.0};
+    bool    abs_active_{false};
+    bool    tcs_active_{false};
+    uint8_t wheel_lock_{0};
 
     void buildUI();
-    void updateBar(QWidget *bar, QWidget *track, int pct);
-
-    QWidget *fuel_track_{nullptr};
-    QWidget *coolant_track_{nullptr};
+    void updateGBar(QWidget *posBar, QWidget *negBar, QWidget *track, double val, double maxVal);
+    void setWheelLock(QWidget *ind, bool locked);
 };
 
 #endif // VEHICLE_INFO_WIDGET_HPP
