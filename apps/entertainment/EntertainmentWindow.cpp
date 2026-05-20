@@ -142,15 +142,122 @@ void StatusBarWidget::paintEvent(QPaintEvent *) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// ManeuverWidget
+// ═══════════════════════════════════════════════════════════════════════════════
+
+ManeuverWidget::ManeuverWidget(QWidget *parent) : QWidget(parent) {
+    setFixedSize(90, 90);
+    hide();   // 경로 없을 때 숨김
+}
+
+void ManeuverWidget::updateManeuver(TileMapWidget::Maneuver type, double distMeters) {
+    type_  = type;
+    dist_  = distMeters;
+    bool visible = (type != TileMapWidget::Maneuver::None);
+    setVisible(visible);
+    if (visible) update();
+}
+
+void ManeuverWidget::paintEvent(QPaintEvent *) {
+    using M = TileMapWidget::Maneuver;
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+
+    // 배경
+    p.setBrush(QColor(0, 0, 0, 210));
+    p.setPen(QPen(QColor(0x3c, 0x3c, 0x3c), 1));
+    p.drawRoundedRect(rect().adjusted(1,1,-1,-1), 8, 8);
+
+    const int W = width(), H = height();
+    const int arrowAreaH = 58;
+
+    // ── 화살표 ──────────────────────────────────────────────────────────────
+    p.save();
+    p.translate(W / 2.0, arrowAreaH / 2.0 + 4);
+    p.setPen(Qt::NoPen);
+
+    if (type_ == M::Arrived) {
+        // 원 + 체크
+        p.setBrush(QColor(0x0f, 0xa3, 0x36));
+        p.drawEllipse(QPoint(0, 0), 20, 20);
+        p.setPen(QPen(Qt::white, 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        p.setBrush(Qt::NoBrush);
+        QPainterPath chk;
+        chk.moveTo(-9, 0); chk.lineTo(-3, 7); chk.lineTo(9, -7);
+        p.drawPath(chk);
+    } else {
+        // 직진 or 좌/우 화살표
+        QPainterPath arrow;
+        if (type_ == M::Straight) {
+            // ↑ 위쪽 화살표
+            arrow.moveTo( 0, -22);
+            arrow.lineTo(-9,  -9);
+            arrow.lineTo(-4,  -9);
+            arrow.lineTo(-4,  18);
+            arrow.lineTo( 4,  18);
+            arrow.lineTo( 4,  -9);
+            arrow.lineTo( 9,  -9);
+            arrow.closeSubpath();
+        } else if (type_ == M::TurnRight) {
+            // → 우회전
+            arrow.moveTo( 22,  0);
+            arrow.lineTo(  9, -9);
+            arrow.lineTo(  9, -4);
+            arrow.lineTo(-14, -4);
+            arrow.lineTo(-14, -14);
+            arrow.lineTo(-22,  0);
+            arrow.lineTo(-14, 14);
+            arrow.lineTo(-14,  4);
+            arrow.lineTo(  9,  4);
+            arrow.lineTo(  9,  9);
+            arrow.closeSubpath();
+        } else {
+            // ← 좌회전 (TurnRight 좌우 반전)
+            p.scale(-1, 1);
+            arrow.moveTo( 22,  0);
+            arrow.lineTo(  9, -9);
+            arrow.lineTo(  9, -4);
+            arrow.lineTo(-14, -4);
+            arrow.lineTo(-14, -14);
+            arrow.lineTo(-22,  0);
+            arrow.lineTo(-14, 14);
+            arrow.lineTo(-14,  4);
+            arrow.lineTo(  9,  4);
+            arrow.lineTo(  9,  9);
+            arrow.closeSubpath();
+        }
+        p.setBrush(QColor(0x1c, 0x69, 0xd4));
+        p.drawPath(arrow);
+    }
+    p.restore();
+
+    // ── 거리 텍스트 ──────────────────────────────────────────────────────────
+    if (dist_ > 0 && type_ != M::Arrived) {
+        QString txt = dist_ >= 1000.0
+            ? QStringLiteral("%1 km").arg(dist_ / 1000.0, 0, 'f', 1)
+            : QStringLiteral("%1 m").arg(static_cast<int>(dist_));
+        QFont f; f.setPointSize(8); f.setBold(true);
+        p.setFont(f);
+        p.setPen(QColor(0xff, 0xff, 0xff));
+        p.drawText(QRect(0, arrowAreaH, W, H - arrowAreaH),
+                   Qt::AlignHCenter | Qt::AlignVCenter, txt);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // NavScreen
 // ═══════════════════════════════════════════════════════════════════════════════
 
 NavScreen::NavScreen(QWidget *parent) : QWidget(parent) {
     tile_map_ = new TileMapWidget(this);
+    maneuver_widget_ = new ManeuverWidget(this);
     buildETACard();
     buildSpeedBadge();
     buildSpeedLimit();
     buildZoomCtrl();
+
+    connect(tile_map_, &TileMapWidget::maneuverChanged,
+            maneuver_widget_, &ManeuverWidget::updateManeuver);
 }
 
 void NavScreen::buildETACard() {
@@ -320,6 +427,12 @@ void NavScreen::layoutOverlays() {
     const int pad = 12;
 
     tile_map_->setGeometry(0, 0, W, H);
+
+    // 회전 안내 (상단 중앙)
+    if (maneuver_widget_) {
+        int mw = maneuver_widget_->width();
+        maneuver_widget_->move((W - mw) / 2, pad);
+    }
 
     // 속도 배지 (좌상단)
     if (speed_badge_) {

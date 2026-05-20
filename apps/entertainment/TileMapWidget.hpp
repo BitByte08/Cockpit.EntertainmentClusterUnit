@@ -23,6 +23,7 @@ class TileMapWidget : public QWidget {
     Q_OBJECT
 public:
     enum class MapMode { Satellite, Navigation };
+    enum class Maneuver { None, Straight, TurnLeft, TurnRight, Arrived };
 
     explicit TileMapWidget(QWidget *parent = nullptr);
 
@@ -35,6 +36,9 @@ public:
     /// road_graph.json 로드 → Navigation 모드 자동 활성화
     bool loadRoadGraph(const QString &jsonPath);
 
+    const RoadGraph          &roadGraph()    const { return road_graph_; }
+    QVector<QPointF>          currentRoute() const { return route_; }
+
     void setMapMode(MapMode mode);
     MapMode mapMode() const { return map_mode_; }
 
@@ -42,6 +46,8 @@ signals:
     void destinationChanged(double wx, double wz);
     void destinationCleared();
     void distanceToDestChanged(double meters);
+    /// 다음 회전 방향 + 해당 지점까지 거리(m). 경로 없으면 None/−1
+    void maneuverChanged(TileMapWidget::Maneuver type, double distMeters);
 
 public slots:
     void setPosition(double worldX, double worldZ);
@@ -76,6 +82,7 @@ private:
     void worldToMap(double wx, double wz, double &mx, double &my) const;
     void recalcDistance();
     void recalcRoute();
+    void recalcManeuver();
     static int speedToZoom(double kmh);
 
     // ── 멤버 ──────────────────────────────────────────────────────────────

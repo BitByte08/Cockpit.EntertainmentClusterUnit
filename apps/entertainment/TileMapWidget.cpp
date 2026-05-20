@@ -85,11 +85,14 @@ void TileMapWidget::setPosition(double worldX, double worldZ) {
     pos_x_ = worldX; pos_z_ = worldZ;
     recalcDistance();
     if (has_dest_) recalcRoute();
+    recalcManeuver();
     update();
 }
 
 void TileMapWidget::setHeading(double degrees) {
-    heading_ = degrees; update();
+    heading_ = degrees;
+    recalcManeuver();
+    update();
 }
 
 int TileMapWidget::speedToZoom(double kmh) {
@@ -132,6 +135,66 @@ void TileMapWidget::recalcDistance() {
 void TileMapWidget::recalcRoute() {
     if (!has_dest_ || !road_graph_.isLoaded()) { route_.clear(); return; }
     route_ = road_graph_.findPath(pos_x_, pos_z_, dest_x_, dest_z_);
+    recalcManeuver();
+}
+
+void TileMapWidget::recalcManeuver() {
+    if (route_.isEmpty() || !has_dest_) {
+        emit maneuverChanged(Maneuver::None, -1.0);
+        return;
+    }
+
+    // 경로 상 차량과 가장 가까운 인덱스 탐색
+    int closeIdx = 0;
+    double minD2 = std::numeric_limits<double>::max();
+    for (int i = 0; i < route_.size(); ++i) {
+        double dx = route_[i].x() - pos_x_;
+        double dz = route_[i].y() - pos_z_;
+        double d2 = dx*dx + dz*dz;
+        if (d2 < minD2) { minD2 = d2; closeIdx = i; }
+    }
+
+    // 도착 판정 (목적지까지 15m 이내)
+    {
+        double dx = dest_x_ - pos_x_, dz = dest_z_ - pos_z_;
+        if (dx*dx + dz*dz < 15.0 * 15.0) {
+            emit maneuverChanged(Maneuver::Arrived, 0.0);
+            return;
+        }
+    }
+
+    // 전방 50 월드 단위 룩어헤드 지점 탐색
+    const double LOOKAHEAD = 50.0;
+    double accumulated = 0.0;
+    QPointF lookPt = route_.last();
+    double distToLook = 0.0;
+    for (int i = closeIdx + 1; i < route_.size(); ++i) {
+        double dx = route_[i].x() - route_[i-1].x();
+        double dz = route_[i].y() - route_[i-1].y();
+        double seg = std::sqrt(dx*dx + dz*dz);
+        accumulated += seg;
+        if (accumulated >= LOOKAHEAD) {
+            lookPt   = route_[i];
+            distToLook = accumulated;
+            break;
+        }
+        distToLook = accumulated;
+    }
+
+    // 룩어헤드 방향 vs 현재 heading
+    double dx = lookPt.x() - pos_x_;
+    double dz = lookPt.y() - pos_z_;
+    double targetAngle = std::atan2(dx, dz) * 180.0 / M_PI;  // 북=0, 동=+90
+    double diff = targetAngle - heading_;
+    while (diff >  180.0) diff -= 360.0;
+    while (diff < -180.0) diff += 360.0;
+
+    Maneuver m;
+    if      (diff >  45.0) m = Maneuver::TurnRight;
+    else if (diff < -45.0) m = Maneuver::TurnLeft;
+    else                   m = Maneuver::Straight;
+
+    emit maneuverChanged(m, distToLook);
 }
 
 // ── 마우스 → 목적지 ────────────────────────────────────────────────────────────
