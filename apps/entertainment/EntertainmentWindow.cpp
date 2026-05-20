@@ -1,4 +1,6 @@
 #include "EntertainmentWindow.hpp"
+#include "SwitchPanelWidget.hpp"
+#include "VehicleInfoWidget.hpp"
 #include <QPainter>
 #include <QPainterPath>
 #include <QVBoxLayout>
@@ -25,6 +27,32 @@ SideRailWidget::SideRailWidget(QWidget *parent) : QWidget(parent) {
     setFixedWidth(56);
 }
 
+void SideRailWidget::setCurrentPage(int page) {
+    currentPage_ = page;
+    update();
+}
+
+void SideRailWidget::mouseReleaseEvent(QMouseEvent *e) {
+    QRect navRect   ((width() - 40) / 2, 52,  40, 40);
+    QRect switchRect((width() - 40) / 2, 100, 40, 40);
+    QRect infoRect  ((width() - 40) / 2, 148, 40, 40);
+
+    if (navRect.contains(e->pos())) {
+        currentPage_ = 0;
+        emit pageRequested(0);
+        update();
+    } else if (switchRect.contains(e->pos())) {
+        currentPage_ = 1;
+        emit pageRequested(1);
+        update();
+    } else if (infoRect.contains(e->pos())) {
+        currentPage_ = 2;
+        emit pageRequested(2);
+        update();
+    }
+    QWidget::mouseReleaseEvent(e);
+}
+
 void SideRailWidget::paintEvent(QPaintEvent *) {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
@@ -40,16 +68,43 @@ void SideRailWidget::paintEvent(QPaintEvent *) {
     p.fillRect(sx, 10 + 9,  3, 10, kMBlue);
     p.fillRect(sx, 10 + 19, 3, 9,  kMRed);
 
-    // NAV 아이콘 (active)
-    QRect navRect((width() - 40) / 2, 52, 40, 40);
-    p.fillRect(navRect, QColor(0x1A, 0x1A, 0x1A));
-    p.setPen(QPen(kFg1, 1));
-    p.drawRect(navRect);
-    p.setPen(QPen(kFg1, 1.5f, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
-    p.setBrush(Qt::NoBrush);
-    drawNavIcon(p, navRect);
+    // ── NAV 아이콘 ────────────────────────────────────────────────────────────
+    {
+        QRect navRect((width() - 40) / 2, 52, 40, 40);
+        bool  active = (currentPage_ == 0);
+        p.fillRect(navRect, active ? QColor(0x1A, 0x1A, 0x1A) : QColor(0x0A, 0x0A, 0x0A));
+        // 활성 페이지 좌측 인디케이터 바
+        if (active) p.fillRect(0, navRect.top(), 3, navRect.height(), kMBlue);
+        p.setPen(QPen(active ? kFg1 : kFg3,
+                      active ? 1.5f : 1.0f,
+                      Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+        p.setBrush(Qt::NoBrush);
+        drawNavIcon(p, navRect);
+    }
 
-    // 설정 아이콘 (하단)
+    // ── SWITCH 아이콘 ─────────────────────────────────────────────────────────
+    {
+        QRect switchRect((width() - 40) / 2, 100, 40, 40);
+        bool  active = (currentPage_ == 1);
+        p.fillRect(switchRect, active ? QColor(0x1A, 0x1A, 0x1A) : QColor(0x0A, 0x0A, 0x0A));
+        if (active) p.fillRect(0, switchRect.top(), 3, switchRect.height(), kMBlue);
+        p.setPen(QPen(active ? kFg1 : kFg3, 1));
+        p.setBrush(Qt::NoBrush);
+        drawSwitchIcon(p, switchRect);
+    }
+
+    // ── VEHICLE INFO 아이콘 ───────────────────────────────────────────────────
+    {
+        QRect infoRect((width() - 40) / 2, 148, 40, 40);
+        bool  active = (currentPage_ == 2);
+        p.fillRect(infoRect, active ? QColor(0x1A, 0x1A, 0x1A) : QColor(0x0A, 0x0A, 0x0A));
+        if (active) p.fillRect(0, infoRect.top(), 3, infoRect.height(), kMBlue);
+        p.setPen(QPen(active ? kFg1 : kFg3, 1.5f, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+        p.setBrush(Qt::NoBrush);
+        drawInfoIcon(p, infoRect);
+    }
+
+    // ── 설정 아이콘 (하단) ────────────────────────────────────────────────────
     QRect settingsRect((width() - 40) / 2, height() - 50, 40, 40);
     p.setPen(QPen(kFg3, 1.5f, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
     drawSettingsIcon(p, settingsRect);
@@ -58,6 +113,43 @@ void SideRailWidget::paintEvent(QPaintEvent *) {
 static QPointF ip(QRect r, float x, float y) {
     return QPointF(r.x() + r.width() * 0.5f + (x - 11.0f),
                    r.y() + r.height() * 0.5f + (y - 11.0f));
+}
+
+// 스위치 패널 아이콘: 2×2 그리드 + 토글 바
+void SideRailWidget::drawSwitchIcon(QPainter &p, QRect r) const {
+    QColor col = p.pen().color();
+    int cx = r.x() + r.width()  / 2;
+    int cy = r.y() + r.height() / 2;
+    const int sq  = 5;
+    const int gap = 4;
+    // 4개의 작은 사각형 (스위치들)
+    p.fillRect(cx - sq - gap, cy - sq - gap, sq, sq, col);
+    p.fillRect(cx + gap,      cy - sq - gap, sq, sq, col);
+    p.fillRect(cx - sq - gap, cy + gap,      sq, sq, col);
+    p.fillRect(cx + gap,      cy + gap,      sq, sq, col);
+    // 하단 수평선 (토글 심볼)
+    p.setPen(QPen(col, 1.5f));
+    p.drawLine(cx - sq - gap, cy + gap + sq + 4, cx + gap + sq, cy + gap + sq + 4);
+}
+
+// 차량 정보 아이콘: 속도계 (반원 + 바늘 모양)
+void SideRailWidget::drawInfoIcon(QPainter &p, QRect r) const {
+    QColor col = p.pen().color();
+    int cx = r.x() + r.width()  / 2;
+    int cy = r.y() + r.height() / 2 + 2;
+    const int R = 10;
+    // 반원 (속도계 모양)
+    p.drawArc(cx - R, cy - R, R * 2, R * 2, 0, 180 * 16);
+    // 바늘 (45도 방향)
+    p.drawLine(cx, cy, cx + 6, cy - 7);
+    // 중심점
+    p.setBrush(col);
+    p.drawEllipse(QPoint(cx, cy), 2, 2);
+    p.setBrush(Qt::NoBrush);
+    // 눈금 3개
+    p.drawLine(cx - R, cy, cx - R + 3, cy);
+    p.drawLine(cx, cy - R, cx, cy - R + 3);
+    p.drawLine(cx + R, cy, cx + R - 3, cy);
 }
 
 void SideRailWidget::drawNavIcon(QPainter &p, QRect r) const {
@@ -483,12 +575,26 @@ EntertainmentWindow::EntertainmentWindow(QWidget *parent) : QWidget(parent) {
     status_bar_ = new StatusBarWidget(right);
     vb->addWidget(status_bar_);
 
-    nav_screen_ = new NavScreen(right);
-    vb->addWidget(nav_screen_, 1);
+    // 페이지 스택: 0 = NavScreen, 1 = SwitchPanelWidget, 2 = VehicleInfoWidget
+    pages_ = new QStackedWidget(right);
+
+    nav_screen_   = new NavScreen(pages_);
+    switch_panel_ = new SwitchPanelWidget(pages_);
+    vehicle_info_ = new VehicleInfoWidget(pages_);
+    pages_->addWidget(nav_screen_);
+    pages_->addWidget(switch_panel_);
+    pages_->addWidget(vehicle_info_);
+    pages_->setCurrentIndex(0);
+
+    vb->addWidget(pages_, 1);
 
     // 지도 경계 (MapTileBaker 기본값과 일치)
     nav_screen_->tileMap()->setWorldBounds(-400.0, 450.0, -200.0, 240.0);
     nav_screen_->tileMap()->setZoom(2);
+
+    // SideRail ↔ 페이지 전환
+    connect(rail_, &SideRailWidget::pageRequested,
+            pages_, &QStackedWidget::setCurrentIndex);
 
     // 시계
     connect(&clock_timer_, &QTimer::timeout,
@@ -512,4 +618,10 @@ void EntertainmentWindow::setModel(EntertainmentModel *model) {
     // TileMapWidget 경로 거리 → NavScreen 카드 업데이트
     connect(nav_screen_->tileMap(), &TileMapWidget::distanceToDestChanged,
             nav_screen_, &NavScreen::onDistanceChanged);
+
+    // 스위치 패널 ↔ 모델 연결
+    switch_panel_->setModel(model_);
+
+    // 차량 정보 ↔ 모델 연결
+    vehicle_info_->setModel(model_);
 }

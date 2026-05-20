@@ -12,6 +12,7 @@ public:
 
     void start() override {}
     void stop()  override {}
+    void sendFrame(const can_frame &) override {}
 };
 
 #endif // CORE_STUBCANINTERFACE_HPP

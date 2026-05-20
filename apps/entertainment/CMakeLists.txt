@@ -8,6 +8,10 @@ add_executable(entertainment
     TileMapWidget.hpp
     RoadGraph.cpp
     RoadGraph.hpp
+    SwitchPanelWidget.cpp
+    SwitchPanelWidget.hpp
+    VehicleInfoWidget.cpp
+    VehicleInfoWidget.hpp
     models/EntertainmentModel.cpp
     models/EntertainmentModel.hpp
 )

@@ -9,7 +9,8 @@ public:
     ~SocketCANInterface() override;
 
     void start() override;
-    void stop() override;
+    void stop()  override;
+    void sendFrame(const can_frame &frame) override;
 private:
     int socket_fd_{-1};
     bool running_{false};

@@ -18,6 +18,7 @@ public:
     virtual ~CANInterface();
     virtual void start() = 0;
     virtual void stop() = 0;
+    virtual void sendFrame(const can_frame &frame) = 0;
 signals:
     void frameReceived(const can_frame &frame);
 };

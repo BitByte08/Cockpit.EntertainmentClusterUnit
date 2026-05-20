@@ -45,3 +45,8 @@ void SocketCANInterface::start() {
 void SocketCANInterface::stop() {
     running_ = false;
 }
+
+void SocketCANInterface::sendFrame(const can_frame &frame) {
+    if (socket_fd_ >= 0)
+        ::write(socket_fd_, &frame, sizeof(frame));
+}

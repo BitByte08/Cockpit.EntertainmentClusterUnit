@@ -5,8 +5,12 @@
 #include <QLabel>
 #include <QTimer>
 #include <QPushButton>
+#include <QStackedWidget>
 #include "TileMapWidget.hpp"
 #include "models/EntertainmentModel.hpp"
+
+class SwitchPanelWidget;
+class VehicleInfoWidget;
 
 // ── 회전 안내 위젯 ──────────────────────────────────────────────────────────────
 class ManeuverWidget : public QWidget {
@@ -30,12 +34,20 @@ class SideRailWidget : public QWidget {
     Q_OBJECT
 public:
     explicit SideRailWidget(QWidget *parent = nullptr);
+    void setCurrentPage(int page);
+
+signals:
+    void pageRequested(int page);
 
 protected:
     void paintEvent(QPaintEvent *) override;
+    void mouseReleaseEvent(QMouseEvent *e) override;
 
 private:
-    void drawNavIcon    (QPainter &p, QRect r) const;
+    int currentPage_{0};
+    void drawNavIcon     (QPainter &p, QRect r) const;
+    void drawSwitchIcon  (QPainter &p, QRect r) const;
+    void drawInfoIcon    (QPainter &p, QRect r) const;
     void drawSettingsIcon(QPainter &p, QRect r) const;
 };
 
@@ -100,9 +112,12 @@ public:
     bool loadRoadGraph(const QString &jsonPath);
 
 private:
-    SideRailWidget  *rail_{nullptr};
-    StatusBarWidget *status_bar_{nullptr};
-    NavScreen       *nav_screen_{nullptr};
+    SideRailWidget    *rail_{nullptr};
+    StatusBarWidget   *status_bar_{nullptr};
+    QStackedWidget    *pages_{nullptr};
+    NavScreen         *nav_screen_{nullptr};
+    SwitchPanelWidget *switch_panel_{nullptr};
+    VehicleInfoWidget *vehicle_info_{nullptr};
 
     QTimer             clock_timer_;
     EntertainmentModel *model_{nullptr};

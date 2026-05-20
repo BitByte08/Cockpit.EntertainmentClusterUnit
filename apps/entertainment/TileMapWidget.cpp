@@ -463,6 +463,12 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
     double viewOffX = vMx - W / 2.0;
     double viewOffY = vMy - H / 2.0;
 
+    // ── 헤딩업(Heading-Up): 맵 전체를 -heading_ 만큼 회전 ────────────────────
+    p.save();
+    p.translate(W / 2.0, H / 2.0);
+    p.rotate(-heading_);
+    p.translate(-W / 2.0, -H / 2.0);
+
     // ── 맵 렌더링 ────────────────────────────────────────────────────────────
     if (map_mode_ == MapMode::Satellite) {
         p.fillRect(rect(), QColor(0x08, 0x08, 0x10));
@@ -485,7 +491,6 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
             p.setPen(QPen(kMBlue, 2.5, Qt::DashLine, Qt::RoundCap));
             p.drawPolyline(poly);
         } else if (has_dest_ && route_.isEmpty()) {
-            // 직선 대체
             double destMx, destMy;
             worldToMap(dest_x_, dest_z_, destMx, destMy);
             QPen rp(kMBlue, 2.5, Qt::DashLine); rp.setDashPattern({6, 5});
@@ -497,7 +502,7 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
         paintNavigation(p, W, H, viewOffX, viewOffY);
     }
 
-    // ── 목적지 핀 ────────────────────────────────────────────────────────────
+    // ── 목적지 핀 (맵과 함께 회전) ───────────────────────────────────────────
     if (has_dest_) {
         double destMx, destMy;
         worldToMap(dest_x_, dest_z_, destMx, destMy);
@@ -505,14 +510,12 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
 
         p.save();
         p.translate(dsx, dsy);
-        // 핀 막대
         QPainterPath pin;
         pin.moveTo(0, 0);
         pin.lineTo(0, -22);
         p.setPen(QPen(kMBlueD, 2.5));
         p.setBrush(Qt::NoBrush);
         p.drawPath(pin);
-        // 핀 원
         p.setBrush(kMBlue);
         p.setPen(QPen(Qt::white, 1.5));
         p.drawEllipse(QPoint(0, -28), 7, 7);
