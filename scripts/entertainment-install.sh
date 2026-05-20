@@ -14,6 +14,7 @@ INSTALL_DIR="/opt/entertainment"
 BINARY_SRC="${1:-./entertainment-arm64}"
 GITHUB_REPO="BitByte08/Cockpit.EntertainmentClusterUnit"
 RELEASE_BASE="https://github.com/${GITHUB_REPO}/releases/latest/download"
+RAW_BASE="https://raw.githubusercontent.com/${GITHUB_REPO}/main"
 PI_USER="${SUDO_USER:-pi}"
 TILES_DIR="${INSTALL_DIR}/tiles"
 
@@ -179,15 +180,14 @@ else
     info "타일 이미 설치됨: ${TILE_COUNT}개"
 fi
 
-# road_graph.json (맵 패키지에 포함됐으면 이미 있고, 없으면 별도 다운로드)
-if [[ ! -f "${INSTALL_DIR}/road_graph.json" ]]; then
-    if download_release road_graph.json "${INSTALL_DIR}/road_graph.json"; then
-        info "road_graph.json 다운로드 완료"
-    else
-        warn "road_graph.json 없음 — 네비게이션 지도 비활성화"
-    fi
+# road_graph.json — 레포에 포함된 파일이므로 raw GitHub URL에서 직접 받음
+# (맵 패키지에 이미 들어 있으면 덮어씌워 최신 유지)
+info "road_graph.json 다운로드 중..."
+if curl -fsSL "${RAW_BASE}/assets/map/road_graph.json" \
+        -o "${INSTALL_DIR}/road_graph.json"; then
+    info "road_graph.json 설치 완료"
 else
-    info "road_graph.json 이미 설치됨"
+    warn "road_graph.json 다운로드 실패 — 네비게이션 지도 비활성화"
 fi
 
 # ── 6. systemd 서비스 등록 ───────────────────────────────────────────────────
