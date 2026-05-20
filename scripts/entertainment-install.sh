@@ -179,6 +179,17 @@ else
     info "타일 이미 설치됨: ${TILE_COUNT}개"
 fi
 
+# road_graph.json (맵 패키지에 포함됐으면 이미 있고, 없으면 별도 다운로드)
+if [[ ! -f "${INSTALL_DIR}/road_graph.json" ]]; then
+    if download_release road_graph.json "${INSTALL_DIR}/road_graph.json"; then
+        info "road_graph.json 다운로드 완료"
+    else
+        warn "road_graph.json 없음 — 네비게이션 지도 비활성화"
+    fi
+else
+    info "road_graph.json 이미 설치됨"
+fi
+
 # ── 6. systemd 서비스 등록 ───────────────────────────────────────────────────
 section "6/7 systemd 서비스 등록"
 

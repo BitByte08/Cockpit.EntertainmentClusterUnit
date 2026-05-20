@@ -188,7 +188,10 @@ sed -i '/assets\/map\/road_graph.json/d' "$GITIGNORE" 2>/dev/null || true
 if [[ "$DO_PACKAGE" == true ]]; then
     PKG="$REPO_DIR/map-assets.tar.gz"
     info "패키지 생성 중: $PKG"
-    tar -czf "$PKG" -C "$MAP_ASSETS_DIR" tiles
+    # road_graph.json 포함 (있는 경우)
+    EXTRA_FILES=()
+    [[ -f "$MAP_ASSETS_DIR/road_graph.json" ]] && EXTRA_FILES+=("road_graph.json")
+    tar -czf "$PKG" -C "$MAP_ASSETS_DIR" tiles "${EXTRA_FILES[@]}"
     PKG_MB=$(du -sm "$PKG" | cut -f1)
     info "패키지 완료: $PKG  (~${PKG_MB} MB)"
     echo ""

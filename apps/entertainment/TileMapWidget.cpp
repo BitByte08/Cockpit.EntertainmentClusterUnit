@@ -21,6 +21,30 @@ TileMapWidget::TileMapWidget(QWidget *parent) : QWidget(parent) {
     tile_path_ = QCoreApplication::applicationDirPath() + "/tiles";
     setAttribute(Qt::WA_OpaquePaintEvent);
     setMinimumSize(200, 150);
+
+    // ── 드래그 후 자동 재센터링 ────────────────────────────────────────────────
+    recenter_delay_ = new QTimer(this);
+    recenter_delay_->setSingleShot(true);
+
+    recenter_anim_ = new QTimer(this);
+    recenter_anim_->setInterval(16);   // ~60 fps
+
+    // 4초 대기 후 애니메이션 시작
+    connect(recenter_delay_, &QTimer::timeout, this, [this]() {
+        recenter_anim_->start();
+    });
+
+    // 매 프레임마다 팬 → 0 으로 수렴 (15% 감쇠)
+    connect(recenter_anim_, &QTimer::timeout, this, [this]() {
+        const double k = 0.18;
+        pan_wx_ *= (1.0 - k);
+        pan_wz_ *= (1.0 - k);
+        if (std::abs(pan_wx_) < 0.5 && std::abs(pan_wz_) < 0.5) {
+            pan_wx_ = pan_wz_ = 0.0;
+            recenter_anim_->stop();
+        }
+        update();
+    });
 }
 
 // ── 설정 ─────────────────────────────────────────────────────────────────────
@@ -60,7 +84,7 @@ bool TileMapWidget::loadRoadGraph(const QString &jsonPath) {
 void TileMapWidget::setPosition(double worldX, double worldZ) {
     pos_x_ = worldX; pos_z_ = worldZ;
     recalcDistance();
-    if (map_mode_ == MapMode::Navigation && has_dest_) recalcRoute();
+    if (has_dest_) recalcRoute();
     update();
 }
 
@@ -115,28 +139,72 @@ void TileMapWidget::recalcRoute() {
 void TileMapWidget::mousePressEvent(QMouseEvent *e) {
     if (e->button() != Qt::LeftButton) { QWidget::mousePressEvent(e); return; }
 
-    double vMx, vMy;
-    worldToMap(pos_x_, pos_z_, vMx, vMy);
-    double viewOffX = vMx - width()  / 2.0;
-    double viewOffY = vMy - height() / 2.0;
-    double totalPx  = static_cast<double>(kTileSize) * (1 << zoom_);
-    double worldW   = world_max_x_ - world_min_x_;
-    double worldH   = world_max_z_ - world_min_z_;
+    // 드래그 시작 상태 저장 (목적지는 release 시 결정)
+    dragging_          = true;
+    drag_moved_        = false;
+    drag_start_screen_ = e->position();
+    drag_start_pan_wx_ = pan_wx_;
+    drag_start_pan_wz_ = pan_wz_;
 
-    double wx = world_min_x_ + (e->position().x() + viewOffX) / totalPx * worldW;
-    double wz = world_max_z_ - (e->position().y() + viewOffY) / totalPx * worldH;
+    if (recenter_delay_) recenter_delay_->stop();
+    if (recenter_anim_)  recenter_anim_->stop();
+}
 
-    // 목적지 핀 근처 클릭 → 경로 취소
-    if (has_dest_) {
-        double destMapX, destMapY;
-        worldToMap(dest_x_, dest_z_, destMapX, destMapY);
-        double dsx = destMapX - viewOffX - e->position().x();
-        double dsy = destMapY - viewOffY - e->position().y();
-        if (std::sqrt(dsx*dsx + dsy*dsy) < 20.0) { clearDestination(); return; }
+void TileMapWidget::mouseMoveEvent(QMouseEvent *e) {
+    if (!dragging_) return;
+
+    QPointF delta = e->position() - drag_start_screen_;
+    if (!drag_moved_ && std::sqrt(delta.x()*delta.x() + delta.y()*delta.y()) < 6.0)
+        return;
+    drag_moved_ = true;
+
+    double totalPx = static_cast<double>(kTileSize) * (1 << zoom_);
+    double worldW  = world_max_x_ - world_min_x_;
+    double worldH  = world_max_z_ - world_min_z_;
+
+    // 드래그 방향으로 팬 (월드 좌표)
+    // X: 화면 X 와 세계 X 방향 일치
+    // Z: 화면 Y 아래↓ = 세계 Z 남쪽(-Z) → 부호 반전 필요
+    pan_wx_ = drag_start_pan_wx_ + (drag_start_screen_.x() - e->position().x()) * worldW / totalPx;
+    pan_wz_ = drag_start_pan_wz_ - (drag_start_screen_.y() - e->position().y()) * worldH / totalPx;
+
+    update();
+}
+
+void TileMapWidget::mouseReleaseEvent(QMouseEvent *e) {
+    if (e->button() != Qt::LeftButton) { QWidget::mouseReleaseEvent(e); return; }
+
+    bool wasDrag = drag_moved_;
+    dragging_    = false;
+
+    if (!wasDrag) {
+        // 탭 → 목적지 설정 (원래 동작)
+        double vMx, vMy;
+        worldToMap(pos_x_ + pan_wx_, pos_z_ + pan_wz_, vMx, vMy);
+        double viewOffX = vMx - width()  / 2.0;
+        double viewOffY = vMy - height() / 2.0;
+        double totalPx  = static_cast<double>(kTileSize) * (1 << zoom_);
+        double worldW   = world_max_x_ - world_min_x_;
+        double worldH   = world_max_z_ - world_min_z_;
+
+        double wx = world_min_x_ + (e->position().x() + viewOffX) / totalPx * worldW;
+        double wz = world_max_z_ - (e->position().y() + viewOffY) / totalPx * worldH;
+
+        // 목적지 핀 근처 탭 → 경로 취소
+        if (has_dest_) {
+            double destMapX, destMapY;
+            worldToMap(dest_x_, dest_z_, destMapX, destMapY);
+            double dsx = destMapX - viewOffX - e->position().x();
+            double dsy = destMapY - viewOffY - e->position().y();
+            if (std::sqrt(dsx*dsx + dsy*dsy) < 20.0) { clearDestination(); return; }
+        }
+
+        setDestination(wx, wz);
+        emit destinationChanged(wx, wz);
     }
 
-    setDestination(wx, wz);
-    emit destinationChanged(wx, wz);
+    // 드래그/탭 모두 — 4초 후 자동 재센터링 시작
+    if (recenter_delay_) recenter_delay_->start(4000);
 }
 
 // ── 스크롤 줌 ────────────────────────────────────────────────────────────────
@@ -224,36 +292,19 @@ void TileMapWidget::paintRoadEdge(QPainter &p, const RGEdge &edge,
     float width;
     QColor color;
     switch (edge.type) {
-    case RoadType::Highway: width = 5.0f; color = kRoadHwy;   break;
-    case RoadType::Major:   width = 3.5f; color = kRoadMajor; break;
-    default:                width = 2.0f; color = kRoadLocal; break;
+    case RoadType::Highway: width = 7.0f; color = kRoadHwy;   break;
+    case RoadType::Major:   width = 4.5f; color = kRoadMajor; break;
+    default:                width = 3.0f; color = kRoadLocal; break;
     }
 
-    // 고속도로는 테두리(outer) + 내부(inner) 이중 선 (현대 네비 스타일)
-    if (edge.type == RoadType::Highway) {
-        QPainterPath path;
-        bool first = true;
-        for (const auto &pt : edge.points) {
-            double mx, my;
-            worldToMap(pt.x(), pt.y(), mx, my);
-            QPointF sp(mx - viewOffX, my - viewOffY);
-            if (first) { path.moveTo(sp); first = false; }
-            else        path.lineTo(sp);
-        }
-        p.setPen(QPen(kMBlueD, width + 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-        p.drawPath(path);
-        p.setPen(QPen(kRoadHwy, width, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-        p.drawPath(path);
-        return;
-    }
-
+    // 모든 도로: 단일 선, FlatCap (접합점 반원 없음)
     QPolygonF poly;
     for (const auto &pt : edge.points) {
         double mx, my;
         worldToMap(pt.x(), pt.y(), mx, my);
         poly << QPointF(mx - viewOffX, my - viewOffY);
     }
-    p.setPen(QPen(color, width, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.setPen(QPen(color, width, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
     p.drawPolyline(poly);
 }
 
@@ -290,9 +341,16 @@ void TileMapWidget::paintNavigation(QPainter &p, int W, int H,
         for (const auto &edge : road_graph_.edges()) {
             if (edge.type != drawType) continue;
             if (edge.points.isEmpty()) continue;
-            // 간단 컬링: 첫 포인트가 뷰포트 범위 내인지
-            double ex = edge.points.first().x(), ez = edge.points.first().y();
-            if (ex < vMinWx || ex > vMaxWx || ez < vMinWz || ez > vMaxWz) continue;
+            // AABB 컬링: 엣지 전체 바운딩박스가 뷰포트와 겹치는지 확인
+            // (첫 포인트만 보면 큰 엣지가 화면 밖에서 시작할 때 잘못 제거됨)
+            double eMinX = 1e18, eMaxX = -1e18, eMinZ = 1e18, eMaxZ = -1e18;
+            for (const auto &pt : edge.points) {
+                if (pt.x() < eMinX) eMinX = pt.x();
+                if (pt.x() > eMaxX) eMaxX = pt.x();
+                if (pt.y() < eMinZ) eMinZ = pt.y();
+                if (pt.y() > eMaxZ) eMaxZ = pt.y();
+            }
+            if (eMaxX < vMinWx || eMinX > vMaxWx || eMaxZ < vMinWz || eMinZ > vMaxWz) continue;
             paintRoadEdge(p, edge, viewOffX, viewOffY);
         }
     }
@@ -338,7 +396,7 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
     const int W = width(), H = height();
 
     double vMx, vMy;
-    worldToMap(pos_x_, pos_z_, vMx, vMy);
+    worldToMap(pos_x_ + pan_wx_, pos_z_ + pan_wz_, vMx, vMy);
     double viewOffX = vMx - W / 2.0;
     double viewOffY = vMy - H / 2.0;
 
@@ -348,13 +406,14 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
         paintSatellite(p, W, H, viewOffX, viewOffY);
 
         // 위성 모드에서 경로: 점선 오버레이
+        double carMx0, carMy0;
+        worldToMap(pos_x_, pos_z_, carMx0, carMy0);
+        QPointF carScreen(carMx0 - viewOffX, carMy0 - viewOffY);
+
         if (has_dest_ && !route_.isEmpty()) {
-            // 도로 경로 있으면 폴리라인, 없으면 직선
-            const QVector<QPointF> &pts = route_.isEmpty()
-                ? QVector<QPointF>{{dest_x_, dest_z_}} : route_;
             QPolygonF poly;
-            poly << QPointF(W / 2.0, H / 2.0);
-            for (const auto &pt : pts) {
+            poly << carScreen;
+            for (const auto &pt : route_) {
                 double mx, my; worldToMap(pt.x(), pt.y(), mx, my);
                 poly << QPointF(mx - viewOffX, my - viewOffY);
             }
@@ -368,7 +427,7 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
             worldToMap(dest_x_, dest_z_, destMx, destMy);
             QPen rp(kMBlue, 2.5, Qt::DashLine); rp.setDashPattern({6, 5});
             p.setPen(rp);
-            p.drawLine(QPointF(W/2.0, H/2.0),
+            p.drawLine(carScreen,
                        QPointF(destMx - viewOffX, destMy - viewOffY));
         }
     } else {
@@ -397,10 +456,15 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
         p.restore();
     }
 
-    // ── 차량 마커 (화면 정중앙) ──────────────────────────────────────────────
+    // ── 차량 마커 (월드 좌표 기반) ──────────────────────────────────────────
     {
+        double carMx, carMy;
+        worldToMap(pos_x_, pos_z_, carMx, carMy);
+        double carSx = carMx - viewOffX;
+        double carSy = carMy - viewOffY;
+
         p.save();
-        p.translate(W / 2, H / 2);
+        p.translate(carSx, carSy);
         p.rotate(heading_);
 
         // 방향 그림자

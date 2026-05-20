@@ -63,6 +63,15 @@ bool RoadGraph::load(const QString &jsonPath) {
             e.points.append({p["x"].toDouble(), p["z"].toDouble()});
         }
 
+        // edge 끝점을 정확한 노드 좌표로 스냅
+        // → paintRoadEdge와 findPath가 동일 기준점 사용, 도로-경로 정렬
+        if (!e.points.isEmpty()) {
+            if (e.from >= 0 && e.from < (int)nodes_.size())
+                e.points.first() = {nodes_[e.from].x, nodes_[e.from].z};
+            if (e.to >= 0 && e.to < (int)nodes_.size())
+                e.points.last()  = {nodes_[e.to].x,   nodes_[e.to].z};
+        }
+
         // 폴리라인 총 길이 계산
         e.length = 0.0;
         for (int i = 1; i < e.points.size(); ++i) {
@@ -140,7 +149,9 @@ QVector<QPointF> RoadGraph::findPath(int fromNode, int toNode) const {
     if (gScore[toNode] == std::numeric_limits<double>::max())
         return {};   // 경로 없음
 
-    // 역추적
+    // ── 역추적 ─────────────────────────────────────────────────────────────
+    // edge endpoints가 이미 노드 좌표로 스냅돼 있으므로
+    // 접합점 중복 없이 그대로 이어 붙이면 됨
     QVector<QPointF> path;
     int cur = toNode;
     while (cur != fromNode) {
@@ -149,17 +160,13 @@ QVector<QPointF> RoadGraph::findPath(int fromNode, int toNode) const {
         const RGEdge &e = edges_[eidx];
         QVector<QPointF> seg = e.points;
         if (cameReverse[cur]) {
-            // 역방향: 포인트 반전
             for (int i = 0, j = seg.size()-1; i < j; ++i, --j)
                 std::swap(seg[i], seg[j]);
         }
-        // 첫 포인트 중복 방지
-        if (!path.isEmpty()) seg.removeFirst();
+        if (!path.isEmpty()) seg.removeLast();   // 뒤쪽 노드 좌표는 이미 path 앞에 있음
         path = seg + path;
         cur = cameReverse[cur] ? e.to : e.from;
     }
-    // from 노드 추가
-    path.prepend({nodes_[fromNode].x, nodes_[fromNode].z});
     return path;
 }
 

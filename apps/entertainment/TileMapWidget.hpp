@@ -7,6 +7,7 @@
 #include <QString>
 #include <QVector>
 #include <QPointF>
+#include <QTimer>
 #include "RoadGraph.hpp"
 
 /// 슬리피맵 타일 + 벡터 도로 네비게이션 렌더러 (BMW M 스타일)
@@ -56,6 +57,8 @@ protected:
     void paintEvent(QPaintEvent *) override;
     void wheelEvent(QWheelEvent *)  override;
     void mousePressEvent(QMouseEvent *) override;
+    void mouseMoveEvent(QMouseEvent *)  override;
+    void mouseReleaseEvent(QMouseEvent *) override;
 
 private:
     // 타일 모드
@@ -93,6 +96,15 @@ private:
     bool   has_dest_{false};
     double dest_x_{0.0}, dest_z_{0.0};
     QVector<QPointF> route_;    // A* 경로 (네비 모드)
+
+    // ── 드래그 팬 ────────────────────────────────────────────────────────────
+    double  pan_wx_{0.0}, pan_wz_{0.0};          // 월드 단위 팬 오프셋
+    bool    dragging_{false};
+    bool    drag_moved_{false};
+    QPointF drag_start_screen_;
+    double  drag_start_pan_wx_{0.0}, drag_start_pan_wz_{0.0};
+    QTimer *recenter_delay_{nullptr};            // 드래그 종료 후 N초 대기
+    QTimer *recenter_anim_{nullptr};             // 16ms 애니메이션
 
     static constexpr int kTileSize = 1024;
     static constexpr int kCacheMax = 64;
