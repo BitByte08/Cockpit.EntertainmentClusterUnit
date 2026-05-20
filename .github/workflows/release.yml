@@ -63,6 +63,19 @@ jobs:
           echo "$VER" > VERSION
           echo "version=$VER" >> "$GITHUB_OUTPUT"
 
+      - name: Commit VERSION to main
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          echo "${{ steps.version.outputs.version }}" > VERSION
+          git add VERSION
+          git diff --staged --quiet || \
+            git commit -m "chore: bump VERSION to ${{ steps.version.outputs.version }} [skip ci]"
+          git push origin main
+          git checkout "${{ github.ref_name }}"
+
       - name: Build release binary
         run: |
           cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
