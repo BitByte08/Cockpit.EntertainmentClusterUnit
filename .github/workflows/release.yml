@@ -134,5 +134,6 @@ jobs:
             scripts/entertainment-update.sh
             scripts/entertainment-kiosk.service
             scripts/entertainment-update.service
+            map-assets.tar.gz
           generate_release_notes: true
           make_latest: true
