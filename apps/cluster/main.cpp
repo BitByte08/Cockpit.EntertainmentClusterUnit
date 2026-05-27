@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QFont>
 #include <QFontDatabase>
 #include "mainwindow.hpp"
@@ -6,6 +7,12 @@
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     app.setApplicationVersion(APP_VERSION);
+
+    QCommandLineParser parser;
+    parser.setApplicationDescription("Car Cluster Display");
+    parser.addVersionOption();
+    parser.addOption({{"f", "fullscreen"}, "Run in fullscreen (kiosk) mode"});
+    parser.process(app);
 
     // 한글 폰트 설정 (Noto Sans CJK KR 선호, 없으면 시스템 기본)
     QStringList preferredFonts = {
@@ -29,7 +36,7 @@ int main(int argc, char *argv[]) {
     MainWindow window;
 
     // --fullscreen 또는 환경변수 CLUSTER_KIOSK=1 로 키오스크 모드
-    bool kiosk = qApp->arguments().contains("--fullscreen") ||
+    bool kiosk = parser.isSet("fullscreen") ||
                  qEnvironmentVariable("CLUSTER_KIOSK") == "1";
     if (kiosk) {
         window.showFullScreen();

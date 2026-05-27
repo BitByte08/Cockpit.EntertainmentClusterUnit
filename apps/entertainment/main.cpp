@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QFont>
 #include <QFontDatabase>
 #include <QFile>
@@ -11,6 +12,13 @@
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     app.setApplicationVersion(APP_VERSION);
+
+    QCommandLineParser parser;
+    parser.setApplicationDescription("Car Entertainment / Navigation Display");
+    parser.addVersionOption();
+    parser.addOption({{"f", "fullscreen"}, "Run in fullscreen (kiosk) mode"});
+    parser.addOption({"can", "CAN interface name (e.g. can0, vcan0)", "iface"});
+    parser.process(app);
 
     // 폰트 설정 (클러스터와 동일)
     const QStringList preferredFonts = {
@@ -25,12 +33,8 @@ int main(int argc, char *argv[]) {
     }
 
     // CAN 인터페이스 선택: --can <interface> 또는 ENTERTAINMENT_CAN_IF 환경변수
-    QString canIf;
-    const QStringList args = app.arguments();
-    int idx = args.indexOf("--can");
-    if (idx >= 0 && idx + 1 < args.size())
-        canIf = args.at(idx + 1);
-    else
+    QString canIf = parser.value("can");
+    if (canIf.isEmpty())
         canIf = qEnvironmentVariable("ENTERTAINMENT_CAN_IF");
 
     // 모델 생성
@@ -63,7 +67,7 @@ int main(int argc, char *argv[]) {
     if (QFile::exists(graphPath))
         window.loadRoadGraph(graphPath);
 
-    bool kiosk = args.contains("--fullscreen") ||
+    bool kiosk = parser.isSet("fullscreen") ||
                  qEnvironmentVariable("ENTERTAINMENT_KIOSK") == "1";
     if (kiosk) window.showFullScreen();
     else        window.show();
