@@ -75,6 +75,7 @@ jobs:
             git commit -m "chore: bump VERSION to ${{ steps.version.outputs.version }} [skip ci]"
           git push origin main
           git checkout "${{ github.ref_name }}"
+          echo "${{ steps.version.outputs.version }}" > VERSION
 
       - name: Build release binary
         run: |

@@ -17,6 +17,7 @@ public:
     explicit TestCANInterface() : CANInterface(nullptr) {}
     void start() override {}
     void stop()  override {}
+    void sendFrame(const can_frame & /*frame*/) override {}
 
     void inject(uint32_t id, uint8_t dlc,
                 uint8_t b0=0, uint8_t b1=0,
