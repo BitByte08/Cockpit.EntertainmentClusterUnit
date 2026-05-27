@@ -463,6 +463,9 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
     double viewOffX = vMx - W / 2.0;
     double viewOffY = vMy - H / 2.0;
 
+    p.fillRect(rect(), map_mode_ == MapMode::Navigation
+               ? kNavBg : QColor(0x08, 0x08, 0x10));
+
     // ── 헤딩업(Heading-Up): 맵 전체를 -heading_ 만큼 회전 ────────────────────
     p.save();
     p.translate(W / 2.0, H / 2.0);
@@ -471,7 +474,6 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
 
     // ── 맵 렌더링 ────────────────────────────────────────────────────────────
     if (map_mode_ == MapMode::Satellite) {
-        p.fillRect(rect(), QColor(0x08, 0x08, 0x10));
         paintSatellite(p, W, H, viewOffX, viewOffY);
 
         // 위성 모드에서 경로: 점선 오버레이
@@ -554,6 +556,8 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
         p.drawPath(arrow);
         p.restore();
     }
+
+    p.restore(); // heading-up rotation
 
     // ── 우하단: 줌 + 모드 표시 ───────────────────────────────────────────────
     {
