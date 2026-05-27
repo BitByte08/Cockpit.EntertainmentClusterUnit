@@ -22,7 +22,7 @@ fi
 log "현재 버전: v${CURRENT_VERSION}"
 
 # ── 네트워크 확인 ─────────────────────────────────────────────────────────────
-if ! curl -sf --max-time 5 https://api.github.com > /dev/null; then
+if ! curl -sf --max-time 5 -H "User-Agent: cluster-update" https://api.github.com > /dev/null; then
     log "네트워크 없음 — 업데이트 건너뜀"
     exit 0
 fi
@@ -30,6 +30,7 @@ fi
 # ── 최신 릴리스 조회 ──────────────────────────────────────────────────────────
 RELEASE_JSON=$(curl -sf --max-time 10 \
     -H "Accept: application/vnd.github+json" \
+    -H "User-Agent: cluster-update" \
     "$API_URL") || { log "GitHub API 조회 실패"; exit 0; }
 
 LATEST_TAG=$(echo "$RELEASE_JSON" | python3 -c \
