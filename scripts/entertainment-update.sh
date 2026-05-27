@@ -67,7 +67,9 @@ fi
 systemctl stop entertainment-kiosk.service 2>/dev/null || true
 
 chmod +x "$TMP_BINARY"
+mv "${INSTALL_DIR}/${BINARY_NAME}" "${INSTALL_DIR}/${BINARY_NAME}.old" 2>/dev/null || true
 cp "$TMP_BINARY" "${INSTALL_DIR}/${BINARY_NAME}"
+rm -f "${INSTALL_DIR}/${BINARY_NAME}.old"
 rm -f "$TMP_BINARY"
 echo "$LATEST_VERSION" > "$VERSION_FILE"
 

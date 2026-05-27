@@ -76,15 +76,16 @@ if [[ "$MAGIC" != "7f454c46" ]]; then
     exit 0
 fi
 
-# ── 서비스 중지 후 교체 ──────────────────────────────────────────────────────
+# ── 교체 (mv로 우회, 실행 중 덮어쓰기 회피) ──────────────────────────────────
 systemctl stop cluster-kiosk.service 2>/dev/null || true
 
 chmod +x "$TMP_BINARY"
+mv "${INSTALL_DIR}/${BINARY_NAME}" "${INSTALL_DIR}/${BINARY_NAME}.old" 2>/dev/null || true
 cp "$TMP_BINARY" "${INSTALL_DIR}/${BINARY_NAME}"
+rm -f "${INSTALL_DIR}/${BINARY_NAME}.old"
 rm -f "$TMP_BINARY"
 echo "$LATEST_VERSION" > "$VERSION_FILE"
 
-# 부팅 중이면 서비스 유닛이 다시 시작하지만, 수동 실행 중이면 재시작
 if ! systemctl is-system-running 2>/dev/null | grep -q 'booting'; then
     systemctl start cluster-kiosk.service 2>/dev/null || true
 fi
