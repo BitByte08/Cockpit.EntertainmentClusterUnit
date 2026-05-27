@@ -22,12 +22,6 @@ if [[ -f "$VERSION_FILE" ]]; then
 fi
 log "현재 버전: v${CURRENT_VERSION}"
 
-if ! curl -sfL --max-time 5 -H "User-Agent: entertainment-update" \
-    "https://github.com" > /dev/null; then
-    log "네트워크 없음 — 업데이트 건너뜀"
-    exit 0
-fi
-
 rm -f "$TMP_VERSION"
 if ! curl -sfL --max-time 10 -H "User-Agent: entertainment-update" \
     "${DOWNLOAD_BASE}/VERSION" -o "$TMP_VERSION"; then

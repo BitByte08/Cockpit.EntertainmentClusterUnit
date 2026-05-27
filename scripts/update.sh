@@ -23,13 +23,6 @@ if [[ -f "$VERSION_FILE" ]]; then
 fi
 log "현재 버전: v${CURRENT_VERSION}"
 
-# ── 네트워크 확인 (github.com 직접, API 아님) ─────────────────────────────────
-if ! curl -sfL --max-time 5 -H "User-Agent: cluster-update" \
-    "https://github.com" > /dev/null; then
-    log "네트워크 없음 — 업데이트 건너뜀"
-    exit 0
-fi
-
 # ── 최신 VERSION 파일 다운로드 (API 없이) ─────────────────────────────────────
 rm -f "$TMP_VERSION"
 if ! curl -sfL --max-time 10 -H "User-Agent: cluster-update" \
