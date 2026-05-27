@@ -70,9 +70,15 @@ if [[ "$MAGIC" != "7f454c46" ]]; then
     log "유효한 ELF 바이너리가 아님"; rm -f "$TMP_BINARY"; exit 0
 fi
 
+systemctl stop entertainment-kiosk.service 2>/dev/null || true
+
 chmod +x "$TMP_BINARY"
 cp "$TMP_BINARY" "${INSTALL_DIR}/${BINARY_NAME}"
 rm -f "$TMP_BINARY"
 echo "$LATEST_VERSION" > "$VERSION_FILE"
+
+if ! systemctl is-system-running 2>/dev/null | grep -q 'booting'; then
+    systemctl start entertainment-kiosk.service 2>/dev/null || true
+fi
 
 log "업데이트 완료: v${LATEST_VERSION}"
