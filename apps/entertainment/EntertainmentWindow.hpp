@@ -57,6 +57,8 @@ class StatusBarWidget : public QWidget {
 public:
     explicit StatusBarWidget(QWidget *parent = nullptr);
 
+    void setCanStatus(bool ok, const QString &label = {});
+
 public slots:
     void updateClock();
 
@@ -66,6 +68,8 @@ protected:
 private:
     QString time_str_{"00:00"};
     QString date_str_;
+    bool    can_ok_{false};
+    QString can_label_{"stub  ○"};
 };
 
 // ── 내비게이션 화면 (타일맵 + 오버레이) ──────────────────────────────────────
@@ -110,6 +114,7 @@ public:
 
     void setModel(EntertainmentModel *model);
     bool loadRoadGraph(const QString &jsonPath);
+    void setCanStatus(bool ok, const QString &label = {});
 
 private:
     SideRailWidget    *rail_{nullptr};

@@ -51,6 +51,10 @@ public:
     // 0x300 스위치 패널 프레임 전송 (메인 스레드에서 호출 안전)
     void sendSwitchFlags(uint16_t flags);
 
+    // 0x700 내비게이션 방향 → 클러스터 브로드캐스트
+    // type: 0=None,1=Straight,2=TurnLeft,3=TurnRight,4=Arrived
+    void sendManeuver(int type, int distMeters);
+
 signals:
     void positionChanged(double x, double z);
     void headingChanged(double deg);

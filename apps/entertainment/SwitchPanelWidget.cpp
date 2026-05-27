@@ -177,10 +177,17 @@ void SwitchPanelWidget::buildUI() {
         sendFlags();
     });
 
-    // 좌 방향지시등: 토글 (TurnLeft 비트, 0x300 bit8)
+    // 좌 방향지시등: 토글 — 비상등 활성 시 비상등 해제 후 전환
     connect(btn_turn_left_, &QPushButton::clicked, this, [this] {
-        toggleBit(SB::TurnLeft);
-        if (sw_flags_ & SB::TurnLeft) setBit(SB::TurnRight, false); // 상호 배타
+        if (sw_flags_ & SB::Hazard) {
+            // 비상등 → 좌 방향지시등 전환
+            setBit(SB::Hazard,     false);
+            setBit(SB::TurnLeft,   true);
+            setBit(SB::TurnRight,  false);
+        } else {
+            toggleBit(SB::TurnLeft);
+            if (sw_flags_ & SB::TurnLeft) setBit(SB::TurnRight, false);
+        }
         sendFlags();
     });
 
@@ -194,10 +201,17 @@ void SwitchPanelWidget::buildUI() {
         sendFlags();
     });
 
-    // 우 방향지시등: 토글
+    // 우 방향지시등: 토글 — 비상등 활성 시 비상등 해제 후 전환
     connect(btn_turn_right_, &QPushButton::clicked, this, [this] {
-        toggleBit(SB::TurnRight);
-        if (sw_flags_ & SB::TurnRight) setBit(SB::TurnLeft, false);
+        if (sw_flags_ & SB::Hazard) {
+            // 비상등 → 우 방향지시등 전환
+            setBit(SB::Hazard,     false);
+            setBit(SB::TurnRight,  true);
+            setBit(SB::TurnLeft,   false);
+        } else {
+            toggleBit(SB::TurnRight);
+            if (sw_flags_ & SB::TurnRight) setBit(SB::TurnLeft, false);
+        }
         sendFlags();
     });
 

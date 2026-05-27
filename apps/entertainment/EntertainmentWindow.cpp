@@ -184,6 +184,12 @@ StatusBarWidget::StatusBarWidget(QWidget *parent) : QWidget(parent) {
     updateClock();
 }
 
+void StatusBarWidget::setCanStatus(bool ok, const QString &label) {
+    can_ok_    = ok;
+    can_label_ = label.isEmpty() ? (ok ? "can0  ●" : "stub  ○") : label;
+    update();
+}
+
 void StatusBarWidget::updateClock() {
     time_str_ = QDateTime::currentDateTime().toString("HH:mm");
     date_str_ = QDateTime::currentDateTime().toString("ddd · d MMM").toUpper();
@@ -221,8 +227,8 @@ void StatusBarWidget::paintEvent(QPaintEvent *) {
         int rx = width() - pad;
 
         // CAN 상태
-        QString can = "● CAN";
-        p.setPen(kOK);
+        QString can = QStringLiteral("CAN: %1").arg(can_label_);
+        p.setPen(can_ok_ ? kOK : kWarn);
         p.drawText(rx - fmr.horizontalAdvance(can), cy + fmr.ascent() / 2, can);
         rx -= fmr.horizontalAdvance(can) + 14;
 
@@ -602,6 +608,10 @@ EntertainmentWindow::EntertainmentWindow(QWidget *parent) : QWidget(parent) {
     clock_timer_.start(1000);
 }
 
+void EntertainmentWindow::setCanStatus(bool ok, const QString &label) {
+    if (status_bar_) status_bar_->setCanStatus(ok, label);
+}
+
 bool EntertainmentWindow::loadRoadGraph(const QString &jsonPath) {
     return nav_screen_->tileMap()->loadRoadGraph(jsonPath);
 }
@@ -625,6 +635,10 @@ void EntertainmentWindow::setModel(EntertainmentModel *model) {
     // 차량 정보 ↔ 모델 연결
     vehicle_info_->setModel(model_);
 
-    // 내비 방향 → 클러스터 브로드캐스트 (추후 0x700)
-    // TODO: maneuver CAN broadcast
+    // 내비 방향 → 클러스터 브로드캐스트 (CAN 0x700)
+    connect(nav_screen_->tileMap(), &TileMapWidget::maneuverChanged,
+            this, [this](TileMapWidget::Maneuver type, double distMeters) {
+                model_->sendManeuver(static_cast<int>(type),
+                                     static_cast<int>(distMeters + 0.5));
+            });
 }

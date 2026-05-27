@@ -104,6 +104,19 @@ void ClusterModel::parseCANFrame(const can_frame &frame) {
         break;
     }
 
+    // ── 0x700 MANEUVER: [type u8][dist_hi u8][dist_lo u8][reserved u8] ─────────
+    case 0x700: {
+        if (frame.can_dlc < 3) break;
+        int type = static_cast<int>(frame.data[0]);
+        int dist = (static_cast<int>(frame.data[1]) << 8) | frame.data[2];
+        if (type != maneuver_type_ || dist != maneuver_dist_) {
+            maneuver_type_ = type;
+            maneuver_dist_ = dist;
+            emit maneuverChanged(maneuver_type_, maneuver_dist_);
+        }
+        break;
+    }
+
     default:
         break;
     }

@@ -16,6 +16,8 @@ add_executable(cluster
     widgets/ArcGaugeWidget.hpp
     widgets/IndicatorWidget.cpp
     widgets/IndicatorWidget.hpp
+    widgets/ManeuverWidget.cpp
+    widgets/ManeuverWidget.hpp
     UpdateManager.cpp
     UpdateManager.hpp
 )

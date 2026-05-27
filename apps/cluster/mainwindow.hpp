@@ -11,6 +11,7 @@ class UpdateManager;
 class RpmBarWidget;
 class FuelBarWidget;
 class IndicatorWidget;
+class ManeuverWidget;
 
 // ── MainWindow ────────────────────────────────────────────────────────────────
 // BMW M "Center Speed" cluster layout (Layout B from design spec).
@@ -46,6 +47,9 @@ private slots:
     void onWarningFlagsChanged(int flags);
     void onAbsActiveChanged(bool active);
     void onTcsActiveChanged(bool active);
+
+    // ── Navigation maneuver ──────────────────────────────────────────────────
+    void onManeuverChanged(int type, int distMeters);
 
     // ── OTA update ───────────────────────────────────────────────────────────
     void onUpdateAvailable(const QString &version);
@@ -92,8 +96,9 @@ private:
     FuelBarWidget *fuelBar_{nullptr};
     QLabel        *fuelPctLabel_{nullptr};
 
-    // ── Center panel: speed ──────────────────────────────────────────────────
-    QLabel *speedValueLabel_{nullptr};
+    // ── Center panel: speed + maneuver overlay ────────────────────────────────
+    QLabel         *speedValueLabel_{nullptr};
+    ManeuverWidget *maneuver_widget_{nullptr};
 
     // ── Right panel: status + metrics ─────────────────────────────────────────
     QLabel *ignitionLabel_{nullptr};

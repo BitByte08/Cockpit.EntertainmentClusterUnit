@@ -70,6 +70,10 @@ signals:
     void temperatureChanged(int temp);   // °C   (0x501)
     void oilPressureChanged(int pressure); // 0~100 (0x501)
 
+    // ── 내비게이션 방향 ───────────────────────────────────────────────────────
+    // type: 0=None,1=Straight,2=TurnLeft,3=TurnRight,4=Arrived (0x700)
+    void maneuverChanged(int type, int distMeters);
+
 private slots:
     void onFrameReceived(const can_frame &frame);
 
@@ -88,6 +92,8 @@ private:
     int warning_flags_{0};
     bool abs_active_{false};
     bool tcs_active_{false};
+    int maneuver_type_{0};
+    int maneuver_dist_{0};
 };
 
 #endif // CLUSTER_CLUSTERMODEL_HPP

@@ -37,6 +37,19 @@ void EntertainmentModel::sendSwitchFlags(uint16_t flags) {
     emit switchFlagsChanged(sw_flags_);
 }
 
+void EntertainmentModel::sendManeuver(int type, int distMeters) {
+    if (!can_) return;
+    can_frame frame{};
+    frame.can_id  = 0x700;
+    frame.can_dlc = 4;
+    frame.data[0] = static_cast<uint8_t>(type);
+    uint16_t dist = static_cast<uint16_t>(qBound(0, distMeters, 65535));
+    frame.data[1] = static_cast<uint8_t>((dist >> 8) & 0xFF);
+    frame.data[2] = static_cast<uint8_t>(dist & 0xFF);
+    frame.data[3] = 0;
+    can_->sendFrame(frame);
+}
+
 void EntertainmentModel::onFrameReceived(const can_frame &frame) {
     switch (frame.can_id) {
 

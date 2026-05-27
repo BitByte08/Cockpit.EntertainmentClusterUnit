@@ -36,19 +36,27 @@ int main(int argc, char *argv[]) {
     // 모델 생성
     auto *model = new EntertainmentModel;
 
+    bool canOk = false;
     if (!canIf.isEmpty()) {
-        auto can = std::make_unique<SocketCANInterface>(canIf.toStdString());
-        model->setCANInterface(std::move(can));
+        try {
+            model->setCANInterface(std::make_unique<SocketCANInterface>(canIf.toStdString()));
+            canOk = true;
+        } catch (const std::exception &) {
+            model->setCANInterface(std::make_unique<StubCANInterface>());
+        }
     } else {
         // 하드웨어 없이 실행: StubCANInterface (no-op)
-        auto can = std::make_unique<StubCANInterface>();
-        model->setCANInterface(std::move(can));
+        model->setCANInterface(std::make_unique<StubCANInterface>());
     }
     model->startReceiving();
 
     // 윈도우
     EntertainmentWindow window;
     window.setModel(model);
+    if (canOk)
+        window.setCanStatus(true, QStringLiteral("%1  ●").arg(canIf));
+    else
+        window.setCanStatus(false, "stub  ○");
 
     // road_graph.json 자동 로드 (있으면 네비 모드, 없으면 위성 모드)
     QString graphPath = QCoreApplication::applicationDirPath() + "/road_graph.json";

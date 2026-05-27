@@ -3,6 +3,7 @@
 #include "widgets/RpmBarWidget.hpp"
 #include "widgets/FuelBarWidget.hpp"
 #include "widgets/IndicatorWidget.hpp"
+#include "widgets/ManeuverWidget.hpp"
 #include "UpdateManager.hpp"
 #include "StubCANInterface.hpp"
 #ifndef _WIN32
@@ -337,6 +338,11 @@ QWidget *MainWindow::buildCenterPanel() {
 
     layout->addStretch(4);
 
+    // ── 내비게이션 방향 오버레이 (상단 좌측 절대 위치) ──────────────────────
+    maneuver_widget_ = new ManeuverWidget(panel);
+    maneuver_widget_->move(10, 8);
+    maneuver_widget_->raise();
+
     return panel;
 }
 
@@ -455,6 +461,7 @@ void MainWindow::connectSignals() {
     connect(cluster_model_, &ClusterModel::warningFlagsChanged, this, &MainWindow::onWarningFlagsChanged);
     connect(cluster_model_, &ClusterModel::absActiveChanged,    this, &MainWindow::onAbsActiveChanged);
     connect(cluster_model_, &ClusterModel::tcsActiveChanged,    this, &MainWindow::onTcsActiveChanged);
+    connect(cluster_model_, &ClusterModel::maneuverChanged,     this, &MainWindow::onManeuverChanged);
 }
 
 // ── Slots: driving data ───────────────────────────────────────────────────────
@@ -593,6 +600,12 @@ void MainWindow::onAbsActiveChanged(bool active) {
 
 void MainWindow::onTcsActiveChanged(bool active) {
     if (tcsInd_) tcsInd_->setActive(active);
+}
+
+// ── Slot: navigation maneuver ─────────────────────────────────────────────────
+
+void MainWindow::onManeuverChanged(int type, int distMeters) {
+    if (maneuver_widget_) maneuver_widget_->onManeuverChanged(type, distMeters);
 }
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
