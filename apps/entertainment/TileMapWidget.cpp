@@ -460,17 +460,18 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
 
     double vMx, vMy;
     worldToMap(pos_x_ + pan_wx_, pos_z_ + pan_wz_, vMx, vMy);
+    double carVPos = H * 0.72;   // 차량 세로 위치 (72%↓ = 전방 시야 확보)
     double viewOffX = vMx - W / 2.0;
-    double viewOffY = vMy - H / 2.0;
+    double viewOffY = vMy - carVPos;
 
     p.fillRect(rect(), map_mode_ == MapMode::Navigation
                ? kNavBg : QColor(0x08, 0x08, 0x10));
 
-    // ── 헤딩업(Heading-Up): 맵 전체를 -heading_ 만큼 회전 ────────────────────
+    // ── 헤딩업(Heading-Up): 차량 위치 기준 회전 ──────────────────────────
     p.save();
-    p.translate(W / 2.0, H / 2.0);
+    p.translate(W / 2.0, carVPos);
     p.rotate(-heading_);
-    p.translate(-W / 2.0, -H / 2.0);
+    p.translate(-W / 2.0, -carVPos);
 
     // ── 맵 렌더링 ────────────────────────────────────────────────────────────
     if (map_mode_ == MapMode::Satellite) {

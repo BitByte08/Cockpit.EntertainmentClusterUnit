@@ -1,7 +1,6 @@
 #include "EntertainmentWindow.hpp"
 #include "SwitchPanelWidget.hpp"
 #include "VehicleInfoWidget.hpp"
-#include <QCoreApplication>
 #include <QPainter>
 #include <QPainterPath>
 #include <QVBoxLayout>
@@ -619,14 +618,8 @@ bool EntertainmentWindow::loadRoadGraph(const QString &jsonPath) {
 
 void EntertainmentWindow::setModel(EntertainmentModel *model) {
     model_ = model;
-
-    auto *tileMap = nav_screen_->tileMap();
-    double offX = qEnvironmentVariable("ENTERTAINMENT_MAP_OFFSET_X").toDouble();
-    double offZ = qEnvironmentVariable("ENTERTAINMENT_MAP_OFFSET_Z").toDouble();
     connect(model_, &EntertainmentModel::positionChanged,
-            tileMap, [tileMap, offX, offZ](double x, double z) {
-                tileMap->setPosition(x + offX, z + offZ);
-            });
+            nav_screen_->tileMap(), &TileMapWidget::setPosition);
     connect(model_, &EntertainmentModel::headingChanged,
             nav_screen_->tileMap(), &TileMapWidget::setHeading);
     connect(model_, &EntertainmentModel::speedChanged,
