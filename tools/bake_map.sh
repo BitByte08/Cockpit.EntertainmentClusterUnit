@@ -110,57 +110,84 @@ info "복사 완료: $MAP_ASSETS_DIR/tiles/"
 # ── 2. road_graph.json 생성 ─────────────────────────────────────────────────────
 step "2/4 road_graph.json"
 if [[ "$DO_GRAPH" == true ]]; then
-    if [[ -f "$ROAD_MASK" ]]; then
-        # Python 의존성 확인
-        if ! python3 -c "import cv2, skimage, scipy" 2>/dev/null; then
-            warn "Python 패키지 없음 — 설치 시도 중..."
-            if command -v pacman &>/dev/null; then
-                sudo pacman -S --noconfirm python-opencv python-scikit-image python-scipy
-            elif command -v pip3 &>/dev/null; then
-                pip3 install opencv-python scikit-image scipy
-            elif python3 -m pip &>/dev/null; then
-                python3 -m pip install opencv-python scikit-image scipy
-            else
-                error "pip / pacman 없음\n  sudo pacman -S python-opencv python-scikit-image python-scipy"
-            fi
-        fi
-
-        BOUNDS_SIDECAR="${ROAD_MASK%.png}.bounds.json"
-        if [[ -f "$BOUNDS_SIDECAR" ]]; then
-            MIN_X=$(python3 -c "import json; print(json.load(open('$BOUNDS_SIDECAR'))['min_x'])")
-            MAX_X=$(python3 -c "import json; print(json.load(open('$BOUNDS_SIDECAR'))['max_x'])")
-            MIN_Z=$(python3 -c "import json; print(json.load(open('$BOUNDS_SIDECAR'))['min_z'])")
-            MAX_Z=$(python3 -c "import json; print(json.load(open('$BOUNDS_SIDECAR'))['max_z'])")
-            info "베이크 sidecar 사용: X[$MIN_X, $MAX_X]  Z[$MIN_Z, $MAX_Z]"
+    # Python 의존성 확인
+    if ! python3 -c "import cv2, skimage, scipy" 2>/dev/null; then
+        warn "Python 패키지 없음 — 설치 시도 중..."
+        if command -v pacman &>/dev/null; then
+            sudo pacman -S --noconfirm python-opencv python-scikit-image python-scipy
+        elif command -v pip3 &>/dev/null; then
+            pip3 install opencv-python scikit-image scipy
+        elif python3 -m pip &>/dev/null; then
+            python3 -m pip install opencv-python scikit-image scipy
         else
-            MIN_X=-400; MAX_X=450; MIN_Z=-200; MAX_Z=240
-            warn "road_mask.bounds.json 없음 — 기본값 X[-400,450] Z[-200,240] 사용"
-            warn "  Unity에서 Bake Road Mask 다시 실행하면 sidecar가 생성됩니다"
+            error "pip / pacman 없음\n  sudo pacman -S python-opencv python-scikit-image python-scipy"
         fi
-
-        WORLD_W=$(python3 -c "print(abs($MAX_X - $MIN_X))")
-        WORLD_H=$(python3 -c "print(abs($MAX_Z - $MIN_Z))")
-        AREA=$(python3 -c "print(abs(($MAX_X - $MIN_X) * ($MAX_Z - $MIN_Z)))")
-        if python3 -c "exit(0 if $AREA > 2000000 else 1)"; then
-            WORK_SIZE=4096; THRESHOLD=40
-            info "넓은 영역 감지 → work-size=$WORK_SIZE threshold=$THRESHOLD"
-        else
-            WORK_SIZE=2048; THRESHOLD=40
-        fi
-
-        python3 "$SCRIPT_DIR/extract_road_graph.py" \
-            --mask  "$ROAD_MASK" \
-            --out   "$MAP_ASSETS_DIR/road_graph.json" \
-            --min-x "$MIN_X" --max-x "$MAX_X" \
-            --min-z "$MIN_Z" --max-z "$MAX_Z" \
-            --work-size "$WORK_SIZE" --threshold "$THRESHOLD"
-        info "road_graph.json 생성 완료"
-    else
-        warn "road_mask.png 없음 — road_graph.json 건너뜀"
-        warn "네비게이션 벡터 모드를 쓰려면: Unity → CarSim → Bake Road Mask"
     fi
-else
-    info "road_graph 건너뜀 (--no-graph)"
+
+    # ── bounds 결정 (StyledMapTileBaker sidecar 우선) ─────────────────────────
+    STYLED_BOUNDS="$TILE_SRC/bounds.json"
+    ROAD_BOUNDS="${ROAD_MASK%.png}.bounds.json"
+    if [[ -f "$STYLED_BOUNDS" ]]; then
+        MIN_X=$(python3 -c "import json; print(json.load(open('$STYLED_BOUNDS'))['min_x'])")
+        MAX_X=$(python3 -c "import json; print(json.load(open('$STYLED_BOUNDS'))['max_x'])")
+        MIN_Z=$(python3 -c "import json; print(json.load(open('$STYLED_BOUNDS'))['min_z'])")
+        MAX_Z=$(python3 -c "import json; print(json.load(open('$STYLED_BOUNDS'))['max_z'])")
+        STITCH_BOUNDS=("--min-x" "$MIN_X" "--max-x" "$MAX_X" "--min-z" "$MIN_Z" "--max-z" "$MAX_Z")
+        info "styled_tiles bounds 사용: X[$MIN_X, $MAX_X] Z[$MIN_Z, $MAX_Z]"
+    elif [[ -f "$ROAD_BOUNDS" ]]; then
+        MIN_X=$(python3 -c "import json; print(json.load(open('$ROAD_BOUNDS'))['min_x'])")
+        MAX_X=$(python3 -c "import json; print(json.load(open('$ROAD_BOUNDS'))['max_x'])")
+        MIN_Z=$(python3 -c "import json; print(json.load(open('$ROAD_BOUNDS'))['min_z'])")
+        MAX_Z=$(python3 -c "import json; print(json.load(open('$ROAD_BOUNDS'))['max_z'])")
+        STITCH_BOUNDS=("--min-x" "$MIN_X" "--max-x" "$MAX_X" "--min-z" "$MIN_Z" "--max-z" "$MAX_Z")
+        info "road_mask bounds 사용: X[$MIN_X, $MAX_X] Z[$MIN_Z, $MAX_Z]"
+    else
+        MIN_X=-400; MAX_X=450; MIN_Z=-200; MAX_Z=240
+        STITCH_BOUNDS=("--min-x" "$MIN_X" "--max-x" "$MAX_X" "--min-z" "$MIN_Z" "--max-z" "$MAX_Z")
+        warn "bounds.json 없음 — 기본값 사용"
+    fi
+
+    AREA=$(python3 -c "print(abs(($MAX_X - $MIN_X) * ($MAX_Z - $MIN_Z)))")
+    if python3 -c "exit(0 if $AREA > 2000000 else 1)"; then
+        WORK_SIZE=4096; THRESHOLD=80
+    else
+        WORK_SIZE=2048; THRESHOLD=80
+    fi
+    info "work-size=$WORK_SIZE  threshold=$THRESHOLD"
+
+    # ── styled_tiles에서 도로 마스크 생성 (기본) ──────────────────────────────
+    if [[ -d "$TILE_SRC" ]]; then
+        STITCH_OUT="/tmp/stitch_road_mask.png"
+        ZOOM_LEVEL=4
+        STITCH_SIZE=$(( (1 << ZOOM_LEVEL) * (WORK_SIZE / (1 << ZOOM_LEVEL)) ))
+        info "stitch_road_mask: zoom=$ZOOM_LEVEL tiles=$TILE_SRC → $STITCH_OUT (${STITCH_SIZE}px)"
+        python3 "$SCRIPT_DIR/stitch_road_mask.py" \
+            --tiles "$TILE_SRC" \
+            --zoom "$ZOOM_LEVEL" \
+            --size "$STITCH_SIZE" \
+            --out "$STITCH_OUT" \
+            && MASK_SRC="$STITCH_OUT" \
+            || warn "stitch_road_mask 실패"
+    fi
+    if [[ -z "${MASK_SRC:-}" ]]; then
+        if [[ -f "$ROAD_MASK" ]]; then
+            MASK_SRC="$ROAD_MASK"
+            warn "styled_tiles 없음 — road_mask.png 사용"
+        else
+            warn "도로 마스크 없음 — road_graph.json 건너뜀"
+        fi
+    fi
+
+    # ── road_graph 추출 ──────────────────────────────────────────────────────
+    if [[ -n "${MASK_SRC:-}" ]] && [[ -f "$MASK_SRC" ]]; then
+        python3 "$SCRIPT_DIR/extract_road_graph.py" \
+            --mask  "$MASK_SRC" \
+            --out   "$MAP_ASSETS_DIR/road_graph.json" \
+            "${STITCH_BOUNDS[@]}" \
+            --work-size "$WORK_SIZE" --threshold "$THRESHOLD"
+        rm -f "$STITCH_OUT"
+        info "road_graph.json 생성 완료"
+    fi
 fi
 
 # ── 3. 빌드 디렉토리 연결 ───────────────────────────────────────────────────────
