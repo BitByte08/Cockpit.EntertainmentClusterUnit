@@ -73,11 +73,6 @@ bool TileMapWidget::loadRoadGraph(const QString &jsonPath) {
     bool ok = road_graph_.load(jsonPath);
     if (ok) {
         map_mode_ = MapMode::Navigation;
-        const auto &nodes = road_graph_.nodes();
-        if (!nodes.isEmpty()) {
-            pos_x_ = nodes[0].x;
-            pos_z_ = nodes[0].z;
-        }
         recalcRoute();
         update();
     }
