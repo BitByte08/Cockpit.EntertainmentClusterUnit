@@ -252,7 +252,7 @@ def extract_graph(mask_path, bounds, work_size=2048, min_edge_len=3, threshold=4
                         if len(seg) < min_edge_len:
                             continue
                         pts = np.array([[c, r] for r, c in seg], dtype=np.float32).reshape(-1, 1, 2)
-                        epsilon = max(2, int(6 * scale))
+                        epsilon = max(1, int(2 * scale))
                         approx = cv2.approxPolyDP(pts, epsilon, False)
                         wpts = []
                         for pt in approx:
@@ -268,7 +268,7 @@ def extract_graph(mask_path, bounds, work_size=2048, min_edge_len=3, threshold=4
 
                 # 경로 단순화 (Douglas-Peucker)
                 pts = np.array([[c, r] for r, c in path_px], dtype=np.float32).reshape(-1, 1, 2)
-                epsilon = max(2, int(6 * scale))
+                epsilon = max(1, int(2 * scale))
                 approx = cv2.approxPolyDP(pts, epsilon, False)
                 world_pts = []
                 for pt in approx:
