@@ -148,26 +148,12 @@ if [[ "$DO_GRAPH" == true ]]; then
             WORK_SIZE=2048; THRESHOLD=40
         fi
 
-        ROAD_MASK_INPUT="$ROAD_MASK"
-        if [[ -d "$TILE_SRC" ]]; then
-            COMBINED="/tmp/road_mask_combined.png"
-            info "road_mask + styled_tiles 합성 → $COMBINED"
-            python3 "$SCRIPT_DIR/make_road_mask.py" \
-                --city-mask "$ROAD_MASK" \
-                --tiles "$TILE_SRC" \
-                --zoom 5 --size "$WORK_SIZE" \
-                --out "$COMBINED" \
-                && ROAD_MASK_INPUT="$COMBINED" \
-                || warn "make_road_mask 실패 — road_mask만 사용"
-        fi
-
         python3 "$SCRIPT_DIR/extract_road_graph.py" \
-            --mask  "$ROAD_MASK_INPUT" \
+            --mask  "$ROAD_MASK" \
             --out   "$MAP_ASSETS_DIR/road_graph.json" \
             --min-x "$MIN_X" --max-x "$MAX_X" \
             --min-z "$MIN_Z" --max-z "$MAX_Z" \
             --work-size "$WORK_SIZE" --threshold "$THRESHOLD"
-        rm -f "$COMBINED"
         info "road_graph.json 생성 완료"
     else
         warn "road_mask.png 없음 — road_graph.json 건너뜀"
