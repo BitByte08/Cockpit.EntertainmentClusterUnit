@@ -140,19 +140,34 @@ if [[ "$DO_GRAPH" == true ]]; then
 
         WORLD_W=$(python3 -c "print(abs($MAX_X - $MIN_X))")
         WORLD_H=$(python3 -c "print(abs($MAX_Z - $MIN_Z))")
-        if (( $(echo "$WORLD_W * $WORLD_H > 2000000" | bc -l) )); then
+        AREA=$(python3 -c "print(abs(($MAX_X - $MIN_X) * ($MAX_Z - $MIN_Z)))")
+        if python3 -c "exit(0 if $AREA > 2000000 else 1)"; then
             WORK_SIZE=4096; THRESHOLD=40
-            info "넓은 영역 감지 (${WORLD_W%.*}×${WORLD_H%.*}) → work-size=$WORK_SIZE threshold=$THRESHOLD"
+            info "넓은 영역 감지 → work-size=$WORK_SIZE threshold=$THRESHOLD"
         else
             WORK_SIZE=2048; THRESHOLD=40
         fi
 
+        ROAD_MASK_INPUT="$ROAD_MASK"
+        if [[ -d "$TILE_SRC" ]]; then
+            COMBINED="/tmp/road_mask_combined.png"
+            info "road_mask + styled_tiles 합성 → $COMBINED"
+            python3 "$SCRIPT_DIR/make_road_mask.py" \
+                --city-mask "$ROAD_MASK" \
+                --tiles "$TILE_SRC" \
+                --zoom 5 --size "$WORK_SIZE" \
+                --out "$COMBINED" \
+                && ROAD_MASK_INPUT="$COMBINED" \
+                || warn "make_road_mask 실패 — road_mask만 사용"
+        fi
+
         python3 "$SCRIPT_DIR/extract_road_graph.py" \
-            --mask  "$ROAD_MASK" \
+            --mask  "$ROAD_MASK_INPUT" \
             --out   "$MAP_ASSETS_DIR/road_graph.json" \
             --min-x "$MIN_X" --max-x "$MAX_X" \
             --min-z "$MIN_Z" --max-z "$MAX_Z" \
             --work-size "$WORK_SIZE" --threshold "$THRESHOLD"
+        rm -f "$COMBINED"
         info "road_graph.json 생성 완료"
     else
         warn "road_mask.png 없음 — road_graph.json 건너뜀"
