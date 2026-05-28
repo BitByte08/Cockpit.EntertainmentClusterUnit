@@ -124,10 +124,25 @@ if [[ "$DO_GRAPH" == true ]]; then
                 error "pip / pacman 없음\n  sudo pacman -S python-opencv python-scikit-image python-scipy"
             fi
         fi
+
+        BOUNDS_SIDECAR="${ROAD_MASK%.png}.bounds.json"
+        if [[ -f "$BOUNDS_SIDECAR" ]]; then
+            MIN_X=$(python3 -c "import json; print(json.load(open('$BOUNDS_SIDECAR'))['min_x'])")
+            MAX_X=$(python3 -c "import json; print(json.load(open('$BOUNDS_SIDECAR'))['max_x'])")
+            MIN_Z=$(python3 -c "import json; print(json.load(open('$BOUNDS_SIDECAR'))['min_z'])")
+            MAX_Z=$(python3 -c "import json; print(json.load(open('$BOUNDS_SIDECAR'))['max_z'])")
+            info "베이크 sidecar 사용: X[$MIN_X, $MAX_X]  Z[$MIN_Z, $MAX_Z]"
+        else
+            MIN_X=-400; MAX_X=450; MIN_Z=-200; MAX_Z=240
+            warn "road_mask.bounds.json 없음 — 기본값 X[-400,450] Z[-200,240] 사용"
+            warn "  Unity에서 Bake Road Mask 다시 실행하면 sidecar가 생성됩니다"
+        fi
+
         python3 "$SCRIPT_DIR/extract_road_graph.py" \
             --mask  "$ROAD_MASK" \
             --out   "$MAP_ASSETS_DIR/road_graph.json" \
-            --min-x -400 --max-x 450 --min-z -200 --max-z 240
+            --min-x "$MIN_X" --max-x "$MAX_X" \
+            --min-z "$MIN_Z" --max-z "$MAX_Z"
         info "road_graph.json 생성 완료"
     else
         warn "road_mask.png 없음 — road_graph.json 건너뜀"
