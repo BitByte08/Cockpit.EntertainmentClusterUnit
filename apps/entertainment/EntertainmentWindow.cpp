@@ -1,6 +1,10 @@
 #include "EntertainmentWindow.hpp"
 #include "SwitchPanelWidget.hpp"
 #include "VehicleInfoWidget.hpp"
+#include <QCoreApplication>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QPainter>
 #include <QPainterPath>
 #include <QVBoxLayout>
@@ -594,8 +598,23 @@ EntertainmentWindow::EntertainmentWindow(QWidget *parent) : QWidget(parent) {
 
     vb->addWidget(pages_, 1);
 
-    // 지도 경계 (MapTileBaker 기본값과 일치)
-    nav_screen_->tileMap()->setWorldBounds(-400.0, 450.0, -200.0, 240.0);
+    double minX = -400.0, maxX = 450.0, minZ = -200.0, maxZ = 240.0;
+    QString boundsPath = QCoreApplication::applicationDirPath() + "/tiles/bounds.json";
+    QFile boundsFile(boundsPath);
+    if (boundsFile.open(QIODevice::ReadOnly)) {
+        auto obj = QJsonDocument::fromJson(boundsFile.readAll()).object();
+        if (obj.contains("min_x") && obj.contains("max_x") &&
+            obj.contains("min_z") && obj.contains("max_z")) {
+            minX = obj["min_x"].toDouble();
+            maxX = obj["max_x"].toDouble();
+            minZ = obj["min_z"].toDouble();
+            maxZ = obj["max_z"].toDouble();
+            qInfo() << "[bounds] tiles/bounds.json:"
+                    << "X[" << minX << "," << maxX << "]"
+                    << "Z[" << minZ << "," << maxZ << "]";
+        }
+    }
+    nav_screen_->tileMap()->setWorldBounds(minX, maxX, minZ, maxZ);
     nav_screen_->tileMap()->setZoom(2);
 
     // SideRail ↔ 페이지 전환
