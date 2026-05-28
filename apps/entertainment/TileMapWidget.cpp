@@ -82,6 +82,7 @@ bool TileMapWidget::loadRoadGraph(const QString &jsonPath) {
     if (ok) {
         map_mode_ = MapMode::Navigation;
         recalcRoute();
+        setPosition(pos_x_, pos_z_);
         update();
     }
     return ok;
@@ -90,9 +91,34 @@ bool TileMapWidget::loadRoadGraph(const QString &jsonPath) {
 // ── 위치/속도 슬롯 ────────────────────────────────────────────────────────────
 
 void TileMapWidget::setPosition(double worldX, double worldZ) {
+    static constexpr double kSnapRadius = 80.0;
+    if (road_graph_.isLoaded()) {
+        int nid = road_graph_.nearestNode(worldX, worldZ);
+        if (nid >= 0 && nid < road_graph_.nodes().size()) {
+            double nx = road_graph_.nodes()[nid].x;
+            double nz = road_graph_.nodes()[nid].z;
+            double dx = nx - worldX, dz = nz - worldZ;
+            if (dx*dx + dz*dz < kSnapRadius * kSnapRadius) {
+                worldX = nx; worldZ = nz;
+            }
+        }
+    }
     pos_x_ = worldX; pos_z_ = worldZ;
     recalcDistance();
-    if (has_dest_) recalcRoute();
+    if (has_dest_) {
+        recalcRoute();
+        int closestIdx = -1; double bestD2 = 1e18;
+        for (int i = 0; i < route_.size(); ++i) {
+            double dx = route_[i].x() - pos_x_, dz = route_[i].y() - pos_z_;
+            double d2 = dx*dx + dz*dz;
+            if (d2 < bestD2) { bestD2 = d2; closestIdx = i; }
+        }
+        if (closestIdx > 0)
+            route_.erase(route_.begin(), route_.begin() + closestIdx);
+        if (route_.size() < 2 || bestD2 < 5.0 * 5.0) {
+            clearDestination();
+        }
+    }
     recalcManeuver();
     update();
 }
@@ -252,8 +278,9 @@ void TileMapWidget::mouseReleaseEvent(QMouseEvent *e) {
         // 탭 → 목적지 설정 (원래 동작)
         double vMx, vMy;
         worldToMap(pos_x_ + pan_wx_, pos_z_ + pan_wz_, vMx, vMy);
+        double carVPos = height() * 0.72;
         double viewOffX = vMx - width()  / 2.0;
-        double viewOffY = vMy - height() / 2.0;
+        double viewOffY = vMy - carVPos;
         double totalPx  = static_cast<double>(kTileSize) * (1 << zoom_);
         double worldW   = world_max_x_ - world_min_x_;
         double worldH   = world_max_z_ - world_min_z_;
