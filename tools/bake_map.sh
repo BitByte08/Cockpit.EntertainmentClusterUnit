@@ -138,11 +138,21 @@ if [[ "$DO_GRAPH" == true ]]; then
             warn "  Unity에서 Bake Road Mask 다시 실행하면 sidecar가 생성됩니다"
         fi
 
+        WORLD_W=$(python3 -c "print(abs($MAX_X - $MIN_X))")
+        WORLD_H=$(python3 -c "print(abs($MAX_Z - $MIN_Z))")
+        if (( $(echo "$WORLD_W * $WORLD_H > 2000000" | bc -l) )); then
+            WORK_SIZE=4096; THRESHOLD=40
+            info "넓은 영역 감지 (${WORLD_W%.*}×${WORLD_H%.*}) → work-size=$WORK_SIZE threshold=$THRESHOLD"
+        else
+            WORK_SIZE=2048; THRESHOLD=40
+        fi
+
         python3 "$SCRIPT_DIR/extract_road_graph.py" \
             --mask  "$ROAD_MASK" \
             --out   "$MAP_ASSETS_DIR/road_graph.json" \
             --min-x "$MIN_X" --max-x "$MAX_X" \
-            --min-z "$MIN_Z" --max-z "$MAX_Z"
+            --min-z "$MIN_Z" --max-z "$MAX_Z" \
+            --work-size "$WORK_SIZE" --threshold "$THRESHOLD"
         info "road_graph.json 생성 완료"
     else
         warn "road_mask.png 없음 — road_graph.json 건너뜀"
