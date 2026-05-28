@@ -45,6 +45,13 @@ TileMapWidget::TileMapWidget(QWidget *parent) : QWidget(parent) {
         }
         update();
     });
+
+    zoom_reset_timer_ = new QTimer(this);
+    zoom_reset_timer_->setSingleShot(true);
+    zoom_reset_timer_->setInterval(5000);
+    connect(zoom_reset_timer_, &QTimer::timeout, this, [this]() {
+        auto_zoom_ = true;
+    });
 }
 
 // ── 설정 ─────────────────────────────────────────────────────────────────────
@@ -63,6 +70,7 @@ void TileMapWidget::setZoom(int zoom) {
     auto_zoom_ = false;
     zoom_ = qBound(0, zoom, 6);
     tile_cache_.clear(); update();
+    if (zoom_reset_timer_) zoom_reset_timer_->start();
 }
 
 void TileMapWidget::setMapMode(MapMode mode) {
@@ -273,9 +281,7 @@ void TileMapWidget::mouseReleaseEvent(QMouseEvent *e) {
 // ── 스크롤 줌 ────────────────────────────────────────────────────────────────
 
 void TileMapWidget::wheelEvent(QWheelEvent *e) {
-    auto_zoom_ = false;
-    zoom_ = qBound(0, zoom_ + (e->angleDelta().y() > 0 ? 1 : -1), 6);
-    tile_cache_.clear(); update();
+    setZoom(zoom_ + (e->angleDelta().y() > 0 ? 1 : -1));
 }
 
 // ── 좌표 변환 ────────────────────────────────────────────────────────────────

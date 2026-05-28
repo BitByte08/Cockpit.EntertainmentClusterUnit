@@ -99,6 +99,7 @@ private:
     double heading_{0.0};
 
     bool   auto_zoom_{true};
+    QTimer *zoom_reset_timer_{nullptr};
 
     bool   has_dest_{false};
     double dest_x_{0.0}, dest_z_{0.0};
