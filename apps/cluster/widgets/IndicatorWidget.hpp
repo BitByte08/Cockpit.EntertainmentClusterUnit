@@ -52,7 +52,6 @@ private:
     static int     s_ref_count_;
     static void    ensureSharedTimer();
 
-    // BMW M: dim = #262626
     static constexpr QColor kDimColor{0x26, 0x26, 0x26};
 };
 
