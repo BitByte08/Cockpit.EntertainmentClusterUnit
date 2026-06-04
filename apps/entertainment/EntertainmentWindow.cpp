@@ -485,7 +485,7 @@ void NavScreen::buildZoomCtrl() {
 
 void NavScreen::setSpeed(int kmh) {
     if (!speed_val_label_) return;
-    speed_val_label_->setText(QString::number(kmh));
+    speed_val_label_->setText(QString("%1").arg(kmh, 3, 10, QChar('0')));
     QString col;
     if      (kmh < 80)  col = "#ffffff";
     else if (kmh < 130) col = "#f4b400";
