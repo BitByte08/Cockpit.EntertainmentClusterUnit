@@ -7,22 +7,10 @@
 #include <QTimer>
 
 enum class IndicatorIcon {
-    TurnLeft,
-    TurnRight,
-    HighBeam,
-    LowBeam,
-    CheckEngine,
-    OilPressure,
-    ABS,
-    TCS,
-    FuelWarn,
-    Battery,
+    TurnLeft, TurnRight, HighBeam, LowBeam,
+    CheckEngine, OilPressure, ABS, TCS, FuelWarn, Battery,
 };
 
-/// 클러스터 경고/상태 인디케이터 위젯
-/// - setActive(bool): 켜기/끄기
-/// - startBlink(): 500ms 주기로 점멸 시작
-/// - stopBlink(): 점멸 중지, 현재 active 상태 유지
 class IndicatorWidget : public QWidget {
     Q_OBJECT
 public:
@@ -43,9 +31,6 @@ public:
 protected:
     void paintEvent(QPaintEvent *event) override;
 
-private slots:
-    void onBlink();
-
 private:
     void drawIcon (QPainter &p, const QColor &c, int iw, int ih);
     void drawTurnArrow   (QPainter &p, bool left,   const QColor &c, int iw, int ih);
@@ -61,11 +46,14 @@ private:
     QColor        active_color_;
     bool          active_{false};
     bool          blinking_{false};
-    bool          blink_state_{false};   // true → 꺼진 상태 (점멸 중)
-    QTimer       *blink_timer_;
+
+    static QTimer *s_shared_timer_;
+    static bool    s_blink_state_;
+    static int     s_ref_count_;
+    static void    ensureSharedTimer();
 
     // BMW M: dim = #262626
     static constexpr QColor kDimColor{0x26, 0x26, 0x26};
 };
 
-#endif // CLUSTER_INDICATORWIDGET_HPP
+#endif
