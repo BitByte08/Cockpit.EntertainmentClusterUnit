@@ -516,11 +516,11 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
                ? kNavBg : QColor(0x08, 0x08, 0x10));
 
     // ── 헤딩업(Heading-Up): 드래그 중이면 회전 안 함 ──────────────────────
-    if (!dragging_) {
-        p.translate(W / 2.0, carVPos);
-        p.rotate(-heading_);
-        p.translate(-W / 2.0, -carVPos);
-    }
+    double rotH = dragging_ ? drag_start_heading_ : heading_;
+    p.save();
+    p.translate(W / 2.0, carVPos);
+    p.rotate(-rotH);
+    p.translate(-W / 2.0, -carVPos);
 
     // ── 맵 렌더링 ────────────────────────────────────────────────────────────
     if (map_mode_ == MapMode::Satellite) {
