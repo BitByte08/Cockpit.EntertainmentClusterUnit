@@ -93,15 +93,24 @@ bool TileMapWidget::loadRoadGraph(const QString &jsonPath) {
 void TileMapWidget::setPosition(double worldX, double worldZ) {
     static constexpr double kSnapRadius = 80.0;
     if (road_graph_.isLoaded()) {
-        int nid = road_graph_.nearestNode(worldX, worldZ);
-        if (nid >= 0 && nid < road_graph_.nodes().size()) {
-            double nx = road_graph_.nodes()[nid].x;
-            double nz = road_graph_.nodes()[nid].z;
-            double dx = nx - worldX, dz = nz - worldZ;
-            if (dx*dx + dz*dz < kSnapRadius * kSnapRadius) {
-                worldX = nx; worldZ = nz;
+        double bestD2 = kSnapRadius * kSnapRadius;
+        double snapX = worldX, snapZ = worldZ;
+        for (const auto &edge : road_graph_.edges()) {
+            const auto &pts = edge.points;
+            for (int i = 1; i < pts.size(); ++i) {
+                double ax = pts[i-1].x(), az = pts[i-1].y();
+                double bx = pts[i].x(),   bz = pts[i].y();
+                double abx = bx - ax, abz = bz - az;
+                double ab2 = abx*abx + abz*abz;
+                if (ab2 < 0.001) continue;
+                double t = ((worldX - ax)*abx + (worldZ - az)*abz) / ab2;
+                t = qBound(0.0, t, 1.0);
+                double cx = ax + t * abx, cz = az + t * abz;
+                double d2 = (cx-worldX)*(cx-worldX) + (cz-worldZ)*(cz-worldZ);
+                if (d2 < bestD2) { bestD2 = d2; snapX = cx; snapZ = cz; }
             }
         }
+        worldX = snapX; worldZ = snapZ;
     }
     pos_x_ = worldX; pos_z_ = worldZ;
     recalcDistance();
@@ -259,11 +268,14 @@ void TileMapWidget::mouseMoveEvent(QMouseEvent *e) {
     double worldW  = world_max_x_ - world_min_x_;
     double worldH  = world_max_z_ - world_min_z_;
 
-    // 드래그 방향으로 팬 (월드 좌표)
-    // X: 화면 X 와 세계 X 방향 일치
-    // Z: 화면 Y 아래↓ = 세계 Z 남쪽(-Z) → 부호 반전 필요
-    pan_wx_ = drag_start_pan_wx_ + (drag_start_screen_.x() - e->position().x()) * worldW / totalPx;
-    pan_wz_ = drag_start_pan_wz_ - (drag_start_screen_.y() - e->position().y()) * worldH / totalPx;
+    double rad = qDegreesToRadians(heading_);
+    double sx  = drag_start_screen_.x() - e->position().x();
+    double sy  = drag_start_screen_.y() - e->position().y();
+    double rx  = sx * std::cos(rad) - sy * std::sin(rad);
+    double ry  = sx * std::sin(rad) + sy * std::cos(rad);
+
+    pan_wx_ = drag_start_pan_wx_ + rx * worldW / totalPx;
+    pan_wz_ = drag_start_pan_wz_ - ry * worldH / totalPx;
 
     update();
 }
