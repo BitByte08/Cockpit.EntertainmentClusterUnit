@@ -111,6 +111,7 @@ private:
     bool    drag_moved_{false};
     QPointF drag_start_screen_;
     double  drag_start_pan_wx_{0.0}, drag_start_pan_wz_{0.0};
+    double  drag_start_heading_{0.0};
     QTimer *recenter_delay_{nullptr};            // 드래그 종료 후 N초 대기
     QTimer *recenter_anim_{nullptr};             // 16ms 애니메이션
 

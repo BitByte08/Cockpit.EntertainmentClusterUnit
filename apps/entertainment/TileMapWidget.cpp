@@ -251,6 +251,7 @@ void TileMapWidget::mousePressEvent(QMouseEvent *e) {
     drag_start_screen_ = e->position();
     drag_start_pan_wx_ = pan_wx_;
     drag_start_pan_wz_ = pan_wz_;
+    drag_start_heading_ = heading_;
 
     if (recenter_delay_) recenter_delay_->stop();
     if (recenter_anim_)  recenter_anim_->stop();
@@ -268,7 +269,7 @@ void TileMapWidget::mouseMoveEvent(QMouseEvent *e) {
     double worldW  = world_max_x_ - world_min_x_;
     double worldH  = world_max_z_ - world_min_z_;
 
-    double rad = qDegreesToRadians(heading_);
+    double rad = qDegreesToRadians(drag_start_heading_);
     double sx  = drag_start_screen_.x() - e->position().x();
     double sy  = drag_start_screen_.y() - e->position().y();
     double rx  = sx * std::cos(rad) - sy * std::sin(rad);
