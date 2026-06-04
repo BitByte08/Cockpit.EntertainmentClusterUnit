@@ -459,7 +459,9 @@ void TileMapWidget::paintNavigation(QPainter &p, int W, int H,
                 if (pt.y() < eMinZ) eMinZ = pt.y();
                 if (pt.y() > eMaxZ) eMaxZ = pt.y();
             }
-            if (eMaxX < vMinWx || eMinX > vMaxWx || eMaxZ < vMinWz || eMinZ > vMaxWz) continue;
+            constexpr double kCullMargin = 500.0;
+            if (eMaxX < vMinWx - kCullMargin || eMinX > vMaxWx + kCullMargin ||
+                eMaxZ < vMinWz - kCullMargin || eMinZ > vMaxWz + kCullMargin) continue;
             paintRoadEdge(p, edge, viewOffX, viewOffY);
         }
     }
@@ -513,11 +515,12 @@ void TileMapWidget::paintEvent(QPaintEvent *) {
     p.fillRect(rect(), map_mode_ == MapMode::Navigation
                ? kNavBg : QColor(0x08, 0x08, 0x10));
 
-    // ── 헤딩업(Heading-Up): 차량 위치 기준 회전 ──────────────────────────
-    p.save();
-    p.translate(W / 2.0, carVPos);
-    p.rotate(-heading_);
-    p.translate(-W / 2.0, -carVPos);
+    // ── 헤딩업(Heading-Up): 드래그 중이면 회전 안 함 ──────────────────────
+    if (!dragging_) {
+        p.translate(W / 2.0, carVPos);
+        p.rotate(-heading_);
+        p.translate(-W / 2.0, -carVPos);
+    }
 
     // ── 맵 렌더링 ────────────────────────────────────────────────────────────
     if (map_mode_ == MapMode::Satellite) {
