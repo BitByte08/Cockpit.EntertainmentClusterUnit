@@ -6,11 +6,13 @@ set -euo pipefail
 
 INSTALL_DIR="/opt/cluster"
 BINARY_NAME="cluster"
+SERVICE_NAME="cluster-kiosk.service"
 ASSET_NAME="cluster-arm64"
 GITHUB_REPO="BitByte08/Cockpit.EntertainmentClusterUnit"
 DOWNLOAD_BASE="https://github.com/${GITHUB_REPO}/releases/latest/download"
 VERSION_FILE="${INSTALL_DIR}/VERSION"
-TMP_BINARY="/tmp/cluster-update"
+# 같은 파일시스템에 받아야 rename(2)로 atomic 교체 가능 (ETXTBSY 회피)
+TMP_BINARY="${INSTALL_DIR}/.${BINARY_NAME}.new"
 TMP_VERSION="/tmp/cluster-latest-version"
 LOG_TAG="cluster-update"
 
@@ -61,6 +63,8 @@ log "업데이트 발견: v${CURRENT_VERSION} → v${LATEST_VERSION}"
 
 # ── 바이너리 다운로드 (API 없이) ───────────────────────────────────────────────
 log "다운로드 중: ${DOWNLOAD_BASE}/${ASSET_NAME}"
+mkdir -p "$INSTALL_DIR"
+rm -f "$TMP_BINARY"
 if ! curl -fL --max-time 120 --progress-bar -H "User-Agent: cluster-update" \
     "${DOWNLOAD_BASE}/${ASSET_NAME}" -o "$TMP_BINARY"; then
     log "다운로드 실패"
@@ -76,18 +80,22 @@ if [[ "$MAGIC" != "7f454c46" ]]; then
     exit 0
 fi
 
-# ── 교체 (mv로 우회, 실행 중 덮어쓰기 회피) ──────────────────────────────────
-systemctl stop cluster-kiosk.service 2>/dev/null || true
+chmod 755 "$TMP_BINARY"
+chown root:root "$TMP_BINARY" 2>/dev/null || true
 
-chmod +x "$TMP_BINARY"
-mv "${INSTALL_DIR}/${BINARY_NAME}" "${INSTALL_DIR}/${BINARY_NAME}.old" 2>/dev/null || true
-cp "$TMP_BINARY" "${INSTALL_DIR}/${BINARY_NAME}"
-rm -f "${INSTALL_DIR}/${BINARY_NAME}.old"
-rm -f "$TMP_BINARY"
+systemctl stop "$SERVICE_NAME" 2>/dev/null || true
+
+# 같은 파일시스템(${INSTALL_DIR}) 내 mv → rename(2) → 실행 중 바이너리도 atomic 교체
+if ! mv -f "$TMP_BINARY" "${INSTALL_DIR}/${BINARY_NAME}"; then
+    log "교체 실패"
+    rm -f "$TMP_BINARY"
+    exit 1
+fi
+
 echo "$LATEST_VERSION" > "$VERSION_FILE"
 
 if ! systemctl is-system-running 2>/dev/null | grep -q 'booting'; then
-    systemctl start cluster-kiosk.service 2>/dev/null || true
+    systemctl start "$SERVICE_NAME" 2>/dev/null || true
 fi
 
 log "업데이트 완료: v${LATEST_VERSION}"
